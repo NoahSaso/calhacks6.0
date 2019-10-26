@@ -24,7 +24,7 @@ def encode(eMess, img, locs):
       return orig - 1
     return orig
 
-  for i in range(len(locs)):
+  for i in range(len(binEMess)):
     index = locs[i]
     bit = int(binEMess[i])
     row = index // (3 * dim[1])
@@ -100,43 +100,20 @@ def generate_locations(public_key_filepath, length, max_index):
   result = random.sample(range(max_index), length)
   return result
 
-  # encrypted_message = ""
-
-  # n = transformed_image.shape[0]
-  # m = transformed_image.shape[1]
-  # curr_bitstring = ""
-  # print(len(locations))
-  # for l in locations:
-  #   val = transformed_image[l // (3 * m)][l // 3 % m][l % 3]
-  #   val_bit = val % 2
-  #   curr_bitstring += str(val_bit)
-  #   if len(curr_bitstring) == 8:
-  #     # char_code = int(curr_bitstring, 2)
-  #     encrypted_message += str(curr_bitstring)
-  #     # l = chr(char_code)
-  #     # encrypted_message += l
-  #     curr_bitstring = ""
-  # # bits = int(bitstring, 2)
-  # # encrypted_message = bits.to_bytes((bits.bit_length() + 7) // 8, 'big').decode()
-  # print(encrypted_message)
-  # return encrypted_message
-
 def decode_transformed_image(transformed_image, locations):
-  """Retrieves encrypted message from image.
-  Params:
-  transformed_image - 3 x n x m matrix representation of image
-  locations - list of locations for row-major indexed image
-  Returns:
-  encrypted_message - string
-  """
-
+  encrypted_message = ""
   n = transformed_image.shape[0]
   m = transformed_image.shape[1]
-  bitstring = "0b"
+  curr_bitstring = ""
   for l in locations:
-    bitstring = bitstring + str(transformed_image[l//(3*m)][l//3%m][l%3])
-  bits = int(bitstring, 2)
-  encrypted_message = bits.to_bytes((bits.bit_length() + 7) // 8, 'big').decode()
+    val = transformed_image[l // (3 * m)][l // 3 % m][l % 3]
+    val_bit = val % 2
+    curr_bitstring += str(val_bit)
+    if len(curr_bitstring) == 8:
+      char_code = int(curr_bitstring, 2)
+      l = chr(char_code)
+      encrypted_message += l
+      curr_bitstring = ""
   return encrypted_message
 
 def decrypt(encrypted_message, private_key_filepath, passphrase):
