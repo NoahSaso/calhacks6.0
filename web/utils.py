@@ -29,6 +29,30 @@ def rbgToBinary(r, g, b, bitsPerColor):
     zeroPad = makeZeroPadder(bitsPerColor)
     return zeroPad(bin(r)[2:]) + zeroPad(bin(g)[2:]) + zeroPad(bin(b)[2:])
 
+def bits_list(chars):
+    '''
+    Convert a string to its bits representation as a list of 0's and 1's.
+    >>>  bits_list("Hello World!")
+    ['01001000',
+    '01100101',
+    '01101100',
+    '01101100',
+    '01101111',
+    '00100000',
+    '01010111',
+    '01101111',
+    '01110010',
+    '01101100',
+    '01100100',
+    '00100001']
+    '''
+    # Non utf8 unputs will likely completely break this.
+    return [bin(ord(x))[2:].rjust(8, "0") for x in chars]
+
+def setLSB(number, bit):
+    assert bit == "1" or bit == "0", "Bad call boy."
+    return number & ~1 | int(bit)
+
 def getBinaryPixels(image):
     '''
     Reads and returns the binary values of a PIL image.
