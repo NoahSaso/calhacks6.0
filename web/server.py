@@ -40,15 +40,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
                 # JPG
                 # header = b'\xff\xd8'
-                header_offset = 0
+                # header_offset = 0
                 # tail = b'\xff\xd9'
+                # tail_offset = 0
 
                 # PNG
                 header = b'PNG'
                 header_offset = -1
                 tail = b'IEND'
+                tail_offset = 4
 
-                tail_offset = len(tail)
+                tail_offset += len(tail)
 
                 try:
                     start = data.index(header) + header_offset
