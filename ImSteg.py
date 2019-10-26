@@ -1,4 +1,5 @@
-import numpy as np
+#!/usr/bin/env python3
+
 import cv2
 from utils import *
 from PIL import Image
