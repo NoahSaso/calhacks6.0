@@ -15,7 +15,7 @@ def encode(eMess, img, locs):
   #converts the message into 1's and zeros.
   binEMess = ''.join([zeroPadder(bin(ord(c))[2:]) for c in eMess]) #"100100101001001"
 
-  def setVal(orig, b):
+  def setVal(orig, b): # LSB helper function
     if orig % 2 == 0 and b == 1:
       return orig + 1
     if orig % 2 == 1 and b == 0:
@@ -51,6 +51,7 @@ def transform(image):
   Returns:
   transformed_image - 3 x n x m matrix representation of transformed image
   """
+  image = transformed_image
   return transformed_image
 
 def inverse_transform(transformed_image):
@@ -60,6 +61,7 @@ def inverse_transform(transformed_image):
   Returns:
   image - 3 x n x m matrix representation of image
   """
+  image = transformed_image
   return image
 
 def read_image(filepath):
