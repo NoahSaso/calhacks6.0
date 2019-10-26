@@ -24,7 +24,20 @@
 
     <br>
 
-    <input type="button" onclick="submit()" value="Submit">
+    <label for="publickey">Public Key: </label>
+    <br>
+    <textarea name="publickey" id="publickey" cols="30" rows="10"></textarea>
+
+    <br>
+
+    <label for="privatekey">Private Key (if decoding): </label>
+    <br>
+    <textarea name="privatekey" id="privatekey" cols="30" rows="10"></textarea>
+
+    <br>
+
+    <input type="button" onclick="submit(false)" value="Encode">
+    <input type="button" onclick="submit(true)" value="Decode">
 
   </div>
 </body>

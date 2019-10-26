@@ -25,23 +25,28 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         """Handles POST request with image data"""
         cl = int(self.headers.get('Content-Length'))
         data = self.rfile.read(cl)
-
         data_str = str(data).split('\\r\\n')
-        file_info = data_str[1]
-        filename = file_info.split('filename="')[1][:-5] # -5 removes right quote and .jpg
 
-        header = b'\xff\xd8'
-        tail = b'\xff\xd9'
+        for idx, line in enumerate(data_str):
+            if 'name="image"' in line:
+                filename = line.split('filename="')[1][:-5] # -5 removes right quote and .jpg
 
-        try:
-            start = data.index(header)
-            end = data.index(tail, start) + 2
-        except ValueError:
-            print("Can't find JPEG data!")
-            self.respond(400, {
-                'message': "Can't find JPEG data :("
-            })
-            return
+                header = b'\xff\xd8'
+                tail = b'\xff\xd9'
+
+                try:
+                    start = data.index(header)
+                    end = data.index(tail, start) + 2
+                except ValueError:
+                    print("Can't find JPEG data!")
+                    self.respond(400, {
+                        'message': "Can't find JPEG data :("
+                    })
+                    return
+            elif 'name="publicKey"' in line:
+                public_key = data_str[idx + 2]
+            elif 'name="privateKey"' in line:
+                private_key = data_str[idx + 2]
 
         output_filepath = OUTPUT_FOLDER + filename + OUTPUT_SUFFIX + '.jpg'
 
