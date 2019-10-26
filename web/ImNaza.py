@@ -28,7 +28,7 @@ def encode(eMess, img, locs):
     index = locs[i]
     bit = int(binEMess[i])
     row = index // (3 * dim[1])
-    col = index % (3 * dim[1])
+    col = (index // 3) % dim[1]
     val = index % 3
 
     img[row][col][val] = setVal(img[row][col][val], bit)
@@ -36,21 +36,21 @@ def encode(eMess, img, locs):
 
 ### Real Thing
 
-def encrypt(message, public_key_file):
+def encrypt(message, public_key_filepath):
   """Applies PGP encryption to message.
   Params:
   message - string
-  public_key - string
+  public_key_filepath - string
   Returns:
   encrypted_message - string
   """
 
-  key, _ = pgpy.PGPKey.from_file(public_key_file)
+  key, _ = pgpy.PGPKey.from_file(public_key_filepath)
   msg = pgpy.PGPMessage.new(message)
 
   encrypted_message = key.encrypt(msg)
 
-  return encrypted_message
+  return str(encrypted_message)
 
 def transform(image):
   """Applies discrete cosine transform to image.
@@ -92,7 +92,9 @@ def write_image(image, filepath):
   """
   cv2.imwrite(filepath, image)
 
-def generate_locations(public_key, length, max_index):
+def generate_locations(public_key_filepath, length, max_index):
+  with open(public_key_filepath, 'r') as f:
+    public_key = f.read()
   pubHash = hash(public_key)
   random.seed(pubHash)
   result = random.sample(range(max_index), length)
@@ -107,47 +109,55 @@ def decode_transformed_image(transformed_image, locations):
   encrypted_message - string
   """
 
-  n = transformed_image[0]
-  m = transformed_image[1]
+  n = transformed_image.shape[0]
+  m = transformed_image.shape[1]
   bitstring = "0b"
   for l in locations:
-      bitstring = bitstring + str(transformed_image[l//(3*m)][l//3%m][l%3])
+    bitstring = bitstring + str(transformed_image[l//(3*m)][l//3%m][l%3])
   bits = int(bitstring, 2)
   encrypted_message = bits.to_bytes((bits.bit_length() + 7) // 8, 'big').decode()
   return encrypted_message
 
-def decrypt(encrypted_message, private_key_file, passphrase):
+def decrypt(encrypted_message, private_key_filepath, passphrase):
   """Decrypts encrypted message.
   Params:
   encrypted_message - string
-  private_key - string
+  private_key_filepath - string
   Returns:
   decrypted_message - string
   """
 
-  key, _ = pgpy.PGPKey.from_file(private_key_file)
+  key, _ = pgpy.PGPKey.from_file(private_key_filepath)
+  msg = pgpy.PGPMessage.from_blob(encrypted_message)
 
   if not key.is_unlocked:
     with key.unlock(passphrase):
-      decrypted_message = key.decrypt(encrypted_message)
+      decrypted_message = key.decrypt(msg)
   else:
-    decrypted_message = key.decrypt(encrypted_message)
+    decrypted_message = key.decrypt(msg)
 
-  return decrypted_message
+  return decrypted_message.message
 
-def sender_job(message, source_image_filepath, target_image_filepath, public_key):
-  encrypted_message = encrypt(message, public_key)
+def sender_job(message, source_image_filepath, target_image_filepath, public_key_filepath):
+  encrypted_message = encrypt(message, public_key_filepath)
+
   image = read_image(source_image_filepath)
-  message_length = 3 * image.shape[1] * image.shape[2]
+  message_length = 3 * image.shape[0] * image.shape[1]
+
   transformed_image = transform(image)
-  locations = generate_locations(public_key, message_length)
+  locations = generate_locations(public_key_filepath, message_length, message_length)
   transformed_encoded_image = encode(encrypted_message, transformed_image, locations)
   encoded_image = inverse_transform(transformed_encoded_image)
+
   write_image(encoded_image, target_image_filepath)
 
-def receiver_job(encoded_image, public_key, private_key):
+def receiver_job(encoded_image_filepath, public_key_filepath, private_key_filepath, passphrase):
+  encoded_image = read_image(encoded_image_filepath)
+  message_length = 3 * encoded_image.shape[0] * encoded_image.shape[1]
+
   transformed_encoded_image = transform(encoded_image)
-  locations = generate_locations(public_key)
+  locations = generate_locations(public_key_filepath, message_length, message_length)
   encrypted_message = decode_transformed_image(transformed_encoded_image, locations)
-  message = decrypt(encrypted_message, private_key)
+
+  message = decrypt(encrypted_message, private_key_filepath, passphrase)
   return message
