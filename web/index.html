@@ -3,7 +3,7 @@
 
 <head>
   <meta charset='UTF-8'>
-  <title>NAZA</title>
+  <title>IM-NAZA</title>
   <link rel="stylesheet" href="styles/type.css">
   </link>
   <link rel="stylesheet" href="styles/position.css">
@@ -40,15 +40,19 @@
       </li>
 
       <li>
-        <p> Enter your private key. </p> <br>
+        <p> Enter your private key (only if decoding). </p> <br>
         <textarea name="privatekey" id="privatekey" cols="30" rows="7"></textarea>
       </li>
 
     </ol>
-    
 
-    <input type="button" onclick="submit(true)" value="Encode">
-    <input type="button" onclick="submit(false)" value="Decode">
+    <div id="action-buttons">
+      <button onclick="submit(true)">Encode</button>
+      <button onclick="submit(false)">Decode</button>
+    </div>
+
+    <br>
+    <br>
 
   </div>
 </body>

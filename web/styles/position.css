@@ -21,8 +21,8 @@ body {
 
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #222222;
-    color: #eeeeee;
+    background-color: #222;
+    color: #eee;
   }
 
   a:link {
@@ -45,5 +45,32 @@ body {
 
   img:hover {
     opacity: 1;
+  }
+
+  div#action-buttons {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+  }
+
+  div#action-buttons > button {
+    width: 49%;
+    background-color: transparent;
+    border-radius: 1px;
+    border: solid 1px #eee;
+    color: white;
+    padding: 10px;
+    font-size: 1rem;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+  }
+
+  div#action-buttons > button:hover {
+    background-color: #eee;
+    color: #222222;
+  }
+
+  div#action-buttons > button:active {
+    background-color: #ccc;
   }
 }

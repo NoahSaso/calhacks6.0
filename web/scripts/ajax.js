@@ -1,3 +1,27 @@
+function addClass(elem, class) {
+  let classes = elem.className.split(' ');
+  if (!classes.includes(class)) {
+    classes.push(class);
+  }
+  elem.className = classes.join(' ');
+}
+
+function removeClass(elem, class) {
+  let classes = elem.className.split(' ');
+  if (classes.includes(class)) {
+    classes.splice(classes.indexOf(class), 1);
+  }
+  elem.className = classes.join(' ');
+}
+
+function enable(elem) {
+  removeClass('disabled');
+}
+
+function disable(elem) {
+  addClass('disabled');
+}
+
 function send(file, encode) {
   let formData = new FormData();
   formData.append('image', file);
@@ -30,9 +54,11 @@ function send(file, encode) {
     }
   }
 
+  const encodeButton = document.getElementsByTagName('button')[0];
+  const decodeButton = document.getElementsByTagName('button')[1];
+
   req.open('POST', '/submit', true);
   req.onreadystatechange = function () {
-    console.log(req);
     switch (req.readyState) {
       case 3: // LOADING
         console.log('Loading...');
@@ -43,11 +69,16 @@ function send(file, encode) {
         if (!encode) {
           secretTextElem.value = response.message;
         }
+        enable(encodeButton);
+        enable(decodeButton);
         break;
       default:
         break;
     }
   }
+
+  disable(encodeButton);
+  disable(decodeButton);
 
   req.send(formData);
   console.log('Sent');
