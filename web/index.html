@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 
@@ -7,6 +6,7 @@
     <title>NAZA</title>
     <link rel="stylesheet" href="styles/type.css"></link>
     <link rel="stylesheet" href="styles/position.css"></link>
+    <link rel="stylesheet" href="styles/button.css"></link>
     <script src="scripts/ajax.js"></script>
     <!-- Favicon is GitHub profile image. -->
     <link rel="icon" href="styles/pooh.jpeg">
@@ -17,25 +17,27 @@
     <h1>IM-NAZA.</h1>
     <h3>A tool for hiding text in images.</h3>
 
-    <br>
+    <ol>
 
-    <label for="fileupload">Select a file to upload: </label>
-    <input type="file" name="fileupload" value="fileupload" id="fileupload">
+      <li>
+	<p> Select an image. </p>
+	<div class="fileUpload btn btn-primary">
+	  <input type="file" class="upload" name="fileupload" value="fileupload" id="fileupload">
+	</div>
+      </li>
 
-    <br>
+      <li>
+	<p> Enter your public key. </p> <br>
+	<textarea name="publickey" id="publickey" cols="30" rows="5"></textarea>
+      </li>
 
-    <label for="publickey">Public Key: </label>
-    <br>
-    <textarea name="publickey" id="publickey" cols="30" rows="10"></textarea>
-
-    <br>
-
-    <label for="privatekey">Private Key (if decoding): </label>
-    <br>
-    <textarea name="privatekey" id="privatekey" cols="30" rows="10"></textarea>
-
-    <br>
-
+      <li>
+	<p> Enter your private key. </p> <br>
+	<textarea name="privatekey" id="privatekey" cols="30" rows="5"></textarea>	
+      </li>
+      
+    </ol>
+    
     <input type="button" onclick="submit(false)" value="Encode">
     <input type="button" onclick="submit(true)" value="Decode">
 
