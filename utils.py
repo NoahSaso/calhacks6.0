@@ -1,0 +1,51 @@
+from PIL import Image
+
+def memoize(f):
+    ''' Memoization decorator for functions taking one or more arguments. '''
+    class memodict(dict):
+        def __init__(self, f):
+            self.f = f
+        def __call__(self, *args):
+            return self[args]
+        def __missing__(self, key):
+            ret = self[key] = self.f(*key)
+            return ret
+    return memodict(f)
+
+def readImage(fileName):
+    ''' Read an image from fileName returns a PIL Image. '''
+    return Image.open(fileName)
+
+@memoize
+def makeZeroPadder(bitsPerColor):
+    def zeroPad(binary):
+        assert len(binary) <= bitsPerColor
+        diff = bitsPerColor - len(binary)
+        return diff*'0' + binary
+    return zeroPad
+
+@memoize
+def rbgToBinary(r, g, b, bitsPerColor):
+    zeroPad = makeZeroPadder(bitsPerColor)
+    return zeroPad(bin(r)[2:]) + zeroPad(bin(g)[2:]) + zeroPad(bin(b)[2:])
+
+def getBinaryPixels(image):
+    '''
+    Reads and returns the binary values of a PIL image.
+
+    Returns: A string representing the concatinated binary values of the image.
+    Zero padding is added as needed.
+    '''
+    width, height = image.size
+    bitsPerColor = image.bits
+    imagePixels = ""
+    
+    # Only load the image into memory when we need it.
+    image = image.load()
+
+    for x in range(width):
+        for y in range(height):
+            r, g, b = image[x, y]
+            imagePixels += rbgToBinary(r, g, b, bitsPerColor)
+
+    return imagePixels, image
