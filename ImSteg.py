@@ -78,6 +78,7 @@ def read_image(filepath):
   Returns:
   image - 3 x n x m matrix representation of image
   """
+  image = cv2.imread(filepath, flags=cv2.IMREAD_COLOR) # image is in opencv format
   return image
 
 def write_image(image, filepath):
@@ -88,7 +89,7 @@ def write_image(image, filepath):
   Returns:
   None
   """
-  return None
+  cv2.imwrite(filepath, image)
 
 def generate_locations(public_key, length, max_index):
   pubHash = hash(public_key)
@@ -104,6 +105,14 @@ def decode_transformed_image(transformed_image, locations):
   Returns:
   encrypted_message - string
   """
+
+  n = transformed_image[0]
+  m = transformed_image[1]
+  bitstring = "0b"
+  for l in locations:
+      bitstring = bitstring + str(transformed_image[l//(3*m)][l//3%m][l%3])
+  bits = int(bitstring, 2)
+  encrypted_message = bits.to_bytes((bits.bit_length() + 7) // 8, 'big').decode()
   return encrypted_message
 
 def decrypt(encrypted_message, private_key_file, passphrase):
