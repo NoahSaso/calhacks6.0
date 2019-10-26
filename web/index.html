@@ -2,14 +2,17 @@
 <html>
 
 <head>
-    <meta charset='UTF-8'>
-    <title>NAZA</title>
-    <link rel="stylesheet" href="styles/type.css"></link>
-    <link rel="stylesheet" href="styles/position.css"></link>
-    <link rel="stylesheet" href="styles/button.css"></link>
-    <script src="scripts/ajax.js"></script>
-    <!-- Favicon is GitHub profile image. -->
-    <link rel="icon" href="styles/pooh.jpeg">
+  <meta charset='UTF-8'>
+  <title>NAZA</title>
+  <link rel="stylesheet" href="styles/type.css">
+  </link>
+  <link rel="stylesheet" href="styles/position.css">
+  </link>
+  <link rel="stylesheet" href="styles/button.css">
+  </link>
+  <script src="scripts/ajax.js"></script>
+  <!-- Favicon is GitHub profile image. -->
+  <link rel="icon" href="styles/pooh.jpeg">
 </head>
 
 <body>
@@ -20,26 +23,32 @@
     <ol>
 
       <li>
-	<p> Select an image. </p>
-	<div class="fileUpload btn btn-primary">
-	  <input type="file" class="upload" name="fileupload" value="fileupload" id="fileupload">
-	</div>
+        <p> Select an image. </p>
+        <div class="fileUpload btn btn-primary">
+          <input type="file" class="upload" name="fileupload" value="fileupload" id="fileupload">
+        </div>
       </li>
 
       <li>
-	<p> Enter your public key. </p> <br>
-	<textarea name="publickey" id="publickey" cols="30" rows="5"></textarea>
+        <p> Enter your secret text. </p> <br>
+        <textarea name="secrettext" id="secrettext" cols="30" rows="7"></textarea>
       </li>
 
       <li>
-	<p> Enter your private key. </p> <br>
-	<textarea name="privatekey" id="privatekey" cols="30" rows="5"></textarea>	
+        <p> Enter your public key. </p> <br>
+        <textarea name="publickey" id="publickey" cols="30" rows="7"></textarea>
       </li>
-      
+
+      <li>
+        <p> Enter your private key. </p> <br>
+        <textarea name="privatekey" id="privatekey" cols="30" rows="7"></textarea>
+      </li>
+
     </ol>
     
-    <input type="button" onclick="submit(false)" value="Encode">
-    <input type="button" onclick="submit(true)" value="Decode">
+
+    <input type="button" onclick="submit(true)" value="Encode">
+    <input type="button" onclick="submit(false)" value="Decode">
 
   </div>
 </body>

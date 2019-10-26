@@ -18,7 +18,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
         response = json.dumps(data)
-        print(response)
         self.wfile.write(response.encode())
 
     def do_POST(self):
@@ -26,6 +25,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         cl = int(self.headers.get('Content-Length'))
         data = self.rfile.read(cl)
         data_str = str(data).split('\\r\\n')
+
+        encode = True
 
         for idx, line in enumerate(data_str):
             if 'name="image"' in line:
@@ -43,18 +44,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         'message': "Can't find JPEG data :("
                     })
                     return
+            elif 'name="secretText"' in line:
+                secret_text = data_str[idx + 2]
             elif 'name="publicKey"' in line:
                 public_key = data_str[idx + 2]
             elif 'name="privateKey"' in line:
                 private_key = data_str[idx + 2]
+                encode = False
 
-        output_filepath = OUTPUT_FOLDER + filename + OUTPUT_SUFFIX + '.jpg'
+        if encode:
+            output_filepath = OUTPUT_FOLDER + filename + OUTPUT_SUFFIX + '.jpg'
 
-        with open(output_filepath, 'wb') as f:
-            f.write(data[start:end])
+            with open(output_filepath, 'wb') as f:
+                f.write(data[start:end])
+
+            message = "File saved to: {0}".format(output_filepath)
+        else:
+            # decode text from image
+            message = 'test123'
 
         self.respond(200, {
-            'message': "File saved to: {0}".format(output_filepath)
+            'message': message
         })
 
 server = http.server.HTTPServer(('', PORT), Handler)

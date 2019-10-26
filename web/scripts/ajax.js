@@ -1,12 +1,15 @@
-function sendFile(file, includePrivateKey) {
+function send(file, encode) {
   let formData = new FormData();
   formData.append('image', file);
 
   const publicKey = document.getElementById('publickey').value;
   const privateKey = document.getElementById('privatekey').value;
+  const secretTextElem = document.getElementById('secrettext');
 
   formData.append('publicKey', publicKey);
-  if (includePrivateKey) {
+  if (encode) {
+    formData.append('secretText', secretTextElem.value);
+  } else {
     formData.append('privateKey', privateKey);
   }
 
@@ -37,6 +40,9 @@ function sendFile(file, includePrivateKey) {
       case 4: // DONE
         const response = JSON.parse(req.response);
         console.log('DONE', response);
+        if (!encode) {
+          secretTextElem.value = response.message;
+        }
         break;
       default:
         break;
@@ -47,8 +53,8 @@ function sendFile(file, includePrivateKey) {
   console.log('Sent');
 }
 
-function submit(includePrivateKey) {
+function submit(encode) {
   const imageBase = document.getElementById('fileupload');
   const file = imageBase.files[0];
-  sendFile(file, includePrivateKey);
+  send(file, encode);
 }
