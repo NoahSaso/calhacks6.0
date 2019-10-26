@@ -1,25 +1,29 @@
-function addClass(elem, class) {
-  let classes = elem.className.split(' ');
-  if (!classes.includes(class)) {
-    classes.push(class);
-  }
-  elem.className = classes.join(' ');
+function classes(elem) {
+  return elem.className.split(' ');
 }
 
-function removeClass(elem, class) {
-  let classes = elem.className.split(' ');
-  if (classes.includes(class)) {
-    classes.splice(classes.indexOf(class), 1);
+function addClass(elem, c) {
+  let cs = classes(elem);
+  if (!cs.includes(c)) {
+    cs.push(c);
   }
-  elem.className = classes.join(' ');
+  elem.className = cs.join(' ');
+}
+
+function removeClass(elem, c) {
+  let cs = classes(elem);
+  if (cs.includes(c)) {
+    cs.splice(cs.indexOf(c), 1);
+  }
+  elem.className = cs.join(' ');
 }
 
 function enable(elem) {
-  removeClass('disabled');
+  removeClass(elem, 'disabled');
 }
 
 function disable(elem) {
-  addClass('disabled');
+  addClass(elem, 'disabled');
 }
 
 function send(file, encode) {
