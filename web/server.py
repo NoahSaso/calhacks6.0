@@ -31,8 +31,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         encode = True
 
         for idx, line in enumerate(data_str):
-            if 'name="image"' not in line:
-                print(line)
             if 'name="encode"' in line:
                 encode = data_str[idx + 2] == 'true'
             elif 'name="image"' in line:
