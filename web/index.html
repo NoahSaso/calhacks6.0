@@ -7,8 +7,9 @@
     <title>NAZA</title>
     <link rel="stylesheet" href="styles/type.css"></link>
     <link rel="stylesheet" href="styles/position.css"></link>
+    <script src="scripts/ajax.js"></script>
     <!-- Favicon is GitHub profile image. -->
-    <link rel="icon" href="https://avatars1.githubusercontent.com/u/30676292?s=180&v=4">
+    <link rel="icon" href="styles/pooh.jpeg">
 </head>
 
 <body>
@@ -16,10 +17,14 @@
     <h1>IM-NAZA.</h1>
     <h3>A tool for hiding text in images.</h3>
 
-    <form>
-        <label for="file-select">Upload:</label>
-        <input type="file" name="upload" id="file-select">
-    </form>
+    <br>
+
+    <label for="fileupload">Select a file to upload: </label>
+    <input type="file" name="fileupload" value="fileupload" id="fileupload">
+
+    <br>
+
+    <input type="button" onclick="submit()" value="Submit">
 
   </div>
 </body>
