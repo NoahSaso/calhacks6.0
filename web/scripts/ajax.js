@@ -1,6 +1,14 @@
-function sendFile(file) {
+function sendFile(file, includePrivateKey) {
   let formData = new FormData();
   formData.append('image', file);
+
+  const publicKey = document.getElementById('publickey').value;
+  const privateKey = document.getElementById('privatekey').value;
+
+  formData.append('publicKey', publicKey);
+  if (includePrivateKey) {
+    formData.append('privateKey', privateKey);
+  }
 
   let req = false;
   try {
@@ -39,8 +47,8 @@ function sendFile(file) {
   console.log('Sent');
 }
 
-function submit() {
+function submit(includePrivateKey) {
   const imageBase = document.getElementById('fileupload');
   const file = imageBase.files[0];
-  sendFile(file);
+  sendFile(file, includePrivateKey);
 }
