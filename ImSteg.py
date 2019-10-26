@@ -5,6 +5,7 @@ from PIL import Image
 import random
 from matplotlib import pyplot as plt
 import string as strr
+import pgpy
 
 def randomSample(pw, length, s): #pw is string, length = len of string dimensions is tuple (l, w)
   passHash = hash(pw)
@@ -59,15 +60,15 @@ def encode(filename, string, password): #filename = string, string = text to enc
   rgb = np.dstack((imgR, imgG, imgB))
   return rgb
 
-string = ''.join(random.choice(strr.ascii_lowercase) for x in range(100))
-print(string)
-encoded = encode("demo.png", string, 4)
+# string = ''.join(random.choice(strr.ascii_lowercase) for x in range(100))
+# print(string)
+# encoded = encode("demo.png", string, 4)
 
-plt.imshow(cv2.cvtColor(encoded, cv2.COLOR_BGR2RGB))
+# plt.imshow(cv2.cvtColor(encoded, cv2.COLOR_BGR2RGB))
 
 ### Real Thing
 
-def encrypt(message, public_key):
+def encrypt(message, public_key_file):
   """Applies PGP encryption to message.
   Params:
   message - string
@@ -75,6 +76,12 @@ def encrypt(message, public_key):
   Returns:
   encrypted_message - string
   """
+
+  key, _ = pgpy.PGPKey.from_file(public_key_file)
+  msg = pgpy.PGPMessage.new(message)
+
+  encrypted_message = key.encrypt(msg)
+
   return encrypted_message
 
 def transform(image):
@@ -134,14 +141,23 @@ def decode_transformed_image(transformed_image, locations):
   """
   return encrypted_message
 
-def decrypt(encrypted_message, public_key):
+def decrypt(encrypted_message, private_key_file, passphrase):
   """Decrypts encrypted message.
   Params:
   encrypted_message - string
-  public_key - string
+  private_key - string
   Returns:
   decrypted_message - string
   """
+
+  key, _ = pgpy.PGPKey.from_file(private_key_file)
+
+  if not key.is_unlocked:
+    with key.unlock(passphrase):
+      decrypted_message = key.decrypt(encrypted_message)
+  else:
+    decrypted_message = key.decrypt(encrypted_message)
+
   return decrypted_message
 
 def sender_job(message, source_image_filepath, target_image_filepath, public_key):
