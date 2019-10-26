@@ -1,73 +1,42 @@
-import numpy as np
+#!/usr/bin/env python3
+
 import cv2
 from utils import *
 from PIL import Image
 import random
-from matplotlib import pyplot as plt
-import string as strr
+import pgpy
 
-def randomSample(pw, length, s): #pw is string, length = len of string dimensions is tuple (l, w)
-  passHash = hash(pw)
-  random.seed(passHash)
-  result = random.sample(range(s), length)
-  #print(result)
-  return result
+def encode(eMess, img, locs):
+  '''
+  eMess: encrypted message
+  img: cv img
+  locs: locations for changing the indexes
+  '''
+  dim = img.shape
+  zeroPadder = makeZeroPadder(8)
+  #converts the message into 1's and zeros.
+  binEMess = ''.join([zeroPadder(bin(ord(c))[2:]) for c in eMess]) #"100100101001001"
 
-def setVal(orig, b):
-  if orig % 2 == 0 and b == 1:
-    return orig + 1
-  if orig % 2 == 1 and b == 0:
-    return orig - 1
-  return orig
+  def setVal(orig, b): # LSB helper function
+    if orig % 2 == 0 and b == 1:
+      return orig + 1
+    if orig % 2 == 1 and b == 0:
+      return orig - 1
+    return orig
 
-def encode(filename, string, password): #filename = string, string = text to encode, password = string
-  img = cv2.imread(filename, 1) #image is in opencv format
-  zeroPadder = makeZeroPadder(8) #8 bits per color, 0-255
-  imSize = np.prod(img.shape[:2])
-  imgR, imgG, imgB = cv2.split(img)
-  #print(imgR)
-  print(img.shape)
-  print(imSize)
-  plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+  for i in range(len(locs)):
+    index = locs[i]
+    bit = int(binEMess[i])
+    row = index // (3 * dim[1])
+    col = index % (3 * dim[1])
+    val = index % 3
 
-  string = ''.join([zeroPadder(bin(ord(c))[2:]) for c in string]) #"100100101001001"
-  print(string)
-  if len(string) > 3 * imSize:
-    print("wow, you made a string too big.")
-    return
-
-  indices = randomSample(password, len(string), 3*imSize)
-
-  for c in range(len(string)):
-    i = indices[c]
-    bit = int(string[c])
-    if i < imSize:
-      col = i % img.shape[1]
-      row = i // img.shape[1]
-      imgR[row][col] = setVal(imgR[row][col], bit)
-    elif i < 2*imSize:
-      i = i - imSize
-      col = i % img.shape[1]
-      row = i // img.shape[1]
-      imgG[row][col] = setVal(imgG[row][col], bit)
-    else:
-      i = i - 2 * imSize
-      col = i % img.shape[1]
-      row = i // img.shape[1]
-      imgB[row][col] = setVal(imgB[row][col], bit)
-
-  rgb = np.dstack((imgR, imgG, imgB))
-  return rgb
-
-string = ''.join(random.choice(strr.ascii_lowercase) for x in range(100))
-print(string)
-encoded = encode("demo.png", string, 4)
-
-plt.imshow(cv2.cvtColor(encoded, cv2.COLOR_BGR2RGB))
+    img[row][col][val] = setVal(img[row][col][val], bit)
+  return img
 
 ### Real Thing
 
-def encrypt(message, public_key):
+def encrypt(message, public_key_file):
   """Applies PGP encryption to message.
   Params:
   message - string
@@ -75,6 +44,12 @@ def encrypt(message, public_key):
   Returns:
   encrypted_message - string
   """
+
+  key, _ = pgpy.PGPKey.from_file(public_key_file)
+  msg = pgpy.PGPMessage.new(message)
+
+  encrypted_message = key.encrypt(msg)
+
   return encrypted_message
 
 def transform(image):
@@ -84,6 +59,7 @@ def transform(image):
   Returns:
   transformed_image - 3 x n x m matrix representation of transformed image
   """
+  transformed_image = image
   return transformed_image
 
 def inverse_transform(transformed_image):
@@ -93,6 +69,7 @@ def inverse_transform(transformed_image):
   Returns:
   image - 3 x n x m matrix representation of image
   """
+  image = transformed_image
   return image
 
 def read_image(filepath):
@@ -102,6 +79,7 @@ def read_image(filepath):
   Returns:
   image - 3 x n x m matrix representation of image
   """
+  image = cv2.imread(filepath, flags=cv2.IMREAD_COLOR) # image is in opencv format
   return image
 
 def write_image(image, filepath):
@@ -112,17 +90,13 @@ def write_image(image, filepath):
   Returns:
   None
   """
-  return None
+  cv2.imwrite(filepath, image)
 
-def generate_locations(public_key, length):
-  """Generates locations for message.
-  Params:
-  public_key - string
-  length - number of locations to generate
-  Returns:
-  locations - list of locations for row-major indexed image
-  """
-  return locations
+def generate_locations(public_key, length, max_index):
+  pubHash = hash(public_key)
+  random.seed(pubHash)
+  result = random.sample(range(max_index), length)
+  return result
 
 def decode_transformed_image(transformed_image, locations):
   """Retrieves encrypted message from image.
@@ -132,16 +106,33 @@ def decode_transformed_image(transformed_image, locations):
   Returns:
   encrypted_message - string
   """
+
+  n = transformed_image[0]
+  m = transformed_image[1]
+  bitstring = "0b"
+  for l in locations:
+      bitstring = bitstring + str(transformed_image[l//(3*m)][l//3%m][l%3])
+  bits = int(bitstring, 2)
+  encrypted_message = bits.to_bytes((bits.bit_length() + 7) // 8, 'big').decode()
   return encrypted_message
 
-def decrypt(encrypted_message, public_key):
+def decrypt(encrypted_message, private_key_file, passphrase):
   """Decrypts encrypted message.
   Params:
   encrypted_message - string
-  public_key - string
+  private_key - string
   Returns:
   decrypted_message - string
   """
+
+  key, _ = pgpy.PGPKey.from_file(private_key_file)
+
+  if not key.is_unlocked:
+    with key.unlock(passphrase):
+      decrypted_message = key.decrypt(encrypted_message)
+  else:
+    decrypted_message = key.decrypt(encrypted_message)
+
   return decrypted_message
 
 def sender_job(message, source_image_filepath, target_image_filepath, public_key):
