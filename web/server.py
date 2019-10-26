@@ -3,9 +3,11 @@
 import http.server
 import json
 import os
+import ImNaza
 
 PORT = 8888
 OUTPUT_FOLDER = './submissions/'
+TEMP_SUFFIX = '_temp'
 OUTPUT_SUFFIX = '_encoded'
 
 if not os.path.exists(OUTPUT_FOLDER):
@@ -51,16 +53,29 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             elif 'name="privateKey"' in line:
                 private_key = data_str[idx + 2]
                 encode = False
+            elif 'name="passphrase"' in line:
+                passphrase = data_str[idx + 2]
+                encode = False
+
+        temp_filepath = OUTPUT_FOLDER + filename + TEMP_SUFFIX + '.jpg'
+        output_filepath = OUTPUT_FOLDER + filename + OUTPUT_SUFFIX + '.jpg'
+
+        with open(temp_filepath, 'wb') as f:
+            f.write(data[start:end])
 
         if encode:
-            output_filepath = OUTPUT_FOLDER + filename + OUTPUT_SUFFIX + '.jpg'
+            ImNaza.sender_job(secret_text, temp_filepath, output_filepath, '../pub.asc')
 
-            with open(output_filepath, 'wb') as f:
-                f.write(data[start:end])
+            # os.remove(temp_filepath)
 
-            message = "File saved to: {0}".format(output_filepath)
+            message = "File saved to: {0}".format(temp_filepath)
         else:
             # decode text from image
+
+            ImNaza.receiver_job(temp_filepath, '../pub.asc', '../priv.asc', passphrase)
+
+            # os.remove(temp_filepath)
+
             message = 'test123'
 
         self.respond(200, {

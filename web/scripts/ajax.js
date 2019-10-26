@@ -31,12 +31,14 @@ function send(file, encode) {
   formData.append('image', file);
 
   const secretTextElem = document.getElementById('secrettext');
+  const passphrase = document.getElementById('passphrase').value;
 
   // formData.append('publicKey', publicKey);
   if (encode) {
     formData.append('secretText', secretTextElem.value);
   } else {
     // formData.append('privateKey', privateKey);
+    formData.append('passphrase', passphrase);
   }
 
   let req = false;
