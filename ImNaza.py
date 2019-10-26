@@ -30,9 +30,7 @@ def receiver_job(encoded_image_filepath, public_key_filepath, private_key_filepa
 
   transformed_encoded_image = transform(encoded_image)
   locations = generate_locations(public_key_filepath, message_length, message_length)
-  encrypted_message_plus_garbage = decode_transformed_image(transformed_encoded_image, locations)
-
-  encrypted_message = strip_garbage(encrypted_message_plus_garbage)
+  encrypted_message = decode_transformed_image(transformed_encoded_image, locations)
 
   message = decrypt(encrypted_message, private_key_filepath, passphrase)
   return message
@@ -91,8 +89,9 @@ def encode(eMess, img, locs):
   '''
   dim = image_shape(img)
   zeroPadder = makeZeroPadder(8)
+  eMess = str(len(eMess)) + ":" + eMess
   #converts the message into 1's and zeros.
-  binEMess = ''.join([zeroPadder(bin(ord(c))[2:]) for c in eMess])  #"100100101001001"
+  binEMess = ''.join([zeroPadder(bin(ord(c))[2:]) for c in eMess]) #"100100101001001"
 
   def setVal(orig, b): # LSB helper function
     if orig % 2 == 0 and b == 1:
@@ -117,20 +116,34 @@ def encode(eMess, img, locs):
 
 def decode_transformed_image(transformed_image, locations):
   encrypted_message = ""
-  m = image_shape(transformed_image)[1]
-  curr_bitstring = ""
+  current_bitstring = ""
+  limit = None
+  cols = image_shape(transformed_image)[1]
+
   for l in locations:
-    row = l // (3 * m)
-    col = (l // 3) % m
+    row = l // (3 * cols)
+    col = (l // 3) % cols
 
     val = get_pixel(transformed_image, (col, row))[l % 3]
     val_bit = val % 2
-    curr_bitstring += str(val_bit)
-    if len(curr_bitstring) == 8:
-      char_code = int(curr_bitstring, 2)
-      l = chr(char_code)
-      encrypted_message += l
-      curr_bitstring = ""
+    current_bitstring += str(val_bit)
+    if len(current_bitstring) == 8:
+      # We've read a character.
+      char_code = int(current_bitstring, 2)
+      c = chr(char_code)
+      encrypted_message += c
+      current_bitstring = ""
+
+      if not limit and c == ":":
+        # We've found the header
+        try:
+          limit = int(encrypted_message[:-1])
+        except:
+          raise Exception('Bad length')
+
+      # add/sub 1 because of the colon
+      if len(encrypted_message) - len(str(limit)) - 1 == limit:
+        return encrypted_message[len(str(limit)) + 1 :]
   return encrypted_message
 
 def transform(image):
@@ -166,9 +179,6 @@ def generate_locations(public_key_filepath, length, max_index):
 def image_shape(image):
   return image.size
 
-def strip_garbage(msg):
-  return msg.split(UNIQUE_END_DELIMITER)[0] + UNIQUE_END_DELIMITER
-
 def get_pixel(image, location):
   return list(image.getpixel(location))
 
@@ -182,8 +192,7 @@ def read_image(filepath):
   Returns:
   image - 3 x n x m matrix representation of image
   """
-  image = Image.open(filepath, 'r')
-  return image
+  return Image.open(filepath, 'r')
 
 def write_image(image, filepath):
   """Writes image.
