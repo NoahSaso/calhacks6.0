@@ -30,15 +30,15 @@ function send(file, encode) {
   let formData = new FormData();
   formData.append('image', file);
 
-  const publicKey = document.getElementById('publickey').value;
-  const privateKey = document.getElementById('privatekey').value;
   const secretTextElem = document.getElementById('secrettext');
+  const passphrase = document.getElementById('passphrase').value;
 
-  formData.append('publicKey', publicKey);
+  // formData.append('publicKey', publicKey);
   if (encode) {
     formData.append('secretText', secretTextElem.value);
   } else {
-    formData.append('privateKey', privateKey);
+    // formData.append('privateKey', privateKey);
+    formData.append('passphrase', passphrase);
   }
 
   let req = false;
