@@ -135,7 +135,7 @@ def decode_transformed_image(transformed_image, locations):
   return encrypted_message
 
 def decrypt(encrypted_message, public_key):
-  """Decryptes encrypted message.
+  """Decrypts encrypted message.
   Params:
   encrypted_message - string
   public_key - string
