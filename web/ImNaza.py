@@ -2,6 +2,7 @@
 
 import cv2
 from utils import *
+from zeke import encodev2, decodev2
 from PIL import Image
 import random
 import pgpy
@@ -14,6 +15,7 @@ def encode(eMess, img, locs):
   '''
   dim = img.shape
   zeroPadder = makeZeroPadder(8)
+  eMess = str(len(eMess)) + ":" + eMess
   #converts the message into 1's and zeros.
   binEMess = ''.join([zeroPadder(bin(ord(c))[2:]) for c in eMess]) #"100100101001001"
 
@@ -106,19 +108,46 @@ def generate_locations(public_key_filepath, length, max_index):
 
 def decode_transformed_image(transformed_image, locations):
   encrypted_message = ""
-  n = transformed_image.shape[0]
-  m = transformed_image.shape[1]
-  curr_bitstring = ""
+  current_bitstring = ""
+  limit = None
+  width = transformed_image.shape[0]
+  height = transformed_image.shape[1]
+
   for l in locations:
-    val = transformed_image[l // (3 * m)][l // 3 % m][l % 3]
+    val = transformed_image[l // (3 * width)][l // 3 % width][l % 3]
     val_bit = val % 2
-    curr_bitstring += str(val_bit)
-    if len(curr_bitstring) == 8:
-      char_code = int(curr_bitstring, 2)
-      l = chr(char_code)
-      encrypted_message += l
-      curr_bitstring = ""
-  return encrypted_message
+    current_bitstring += str(val_bit)
+    if len(current_bitstring) == 8:
+      # We've read a character.
+      char_code = int(current_bitstring, 2)
+      c = chr(char_code)
+      encrypted_message += c
+      current_bitstring = ""
+
+      if limit is None and c == ":":
+        # We've found the header
+        try:
+          limit = int(encrypted_message[:-1])
+        except:
+          pass
+
+      if len(encrypted_message) - len(str(limit)) - 1 == limit:
+        return encrypted_message[len(str(limit)) + 1 : ]
+
+  # encrypted_message = ""
+  # n = transformed_image.shape[0]
+  # m = transformed_image.shape[1]
+  # curr_bitstring = ""
+  # for l in locations:
+  #   val = transformed_image[l // (3 * m)][l // 3 % m][l % 3]
+  #   val_bit = val % 2
+  #   curr_bitstring += str(val_bit)
+  #   if len(curr_bitstring) == 8:
+  #     char_code = int(curr_bitstring, 2)
+  #     l = chr(char_code)
+  #     encrypted_message += l
+  #     curr_bitstring = ""
+  # return encrypted_message
 
 def decrypt(encrypted_message, private_key_filepath, passphrase):
   """Decrypts encrypted message.
@@ -163,3 +192,24 @@ def receiver_job(encoded_image_filepath, public_key_filepath, private_key_filepa
 
   message = decrypt(encrypted_message, private_key_filepath, passphrase)
   return message
+
+# test("This is a secret message!", "styles/pooh.jpeg", "test_keys/pub", "test_keys/priv")
+def test(message, source_image_filepath, public_key_filepath, private_key_filepath):
+  encrypted_message = encrypt(message, public_key_filepath)
+
+  image = read_image(source_image_filepath)
+  message_length = 3 * image.shape[0] * image.shape[1]
+
+  transformed_image = transform(image)
+  locations = generate_locations(public_key_filepath, message_length, message_length)
+  transformed_encoded_image = encode(encrypted_message, transformed_image, locations)
+  encoded_image = inverse_transform(transformed_encoded_image)
+
+  message_length = 3 * encoded_image.shape[0] * encoded_image.shape[1]
+
+  transformed_encoded_image = transform(encoded_image)
+  locations = generate_locations(public_key_filepath, message_length, message_length)
+  encrypted_message = decode_transformed_image(transformed_encoded_image, locations)
+
+  message = decrypt(encrypted_message, private_key_filepath, "password")
+  print(message)
