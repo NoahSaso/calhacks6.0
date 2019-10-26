@@ -26,7 +26,7 @@ def encode(eMess, img, locs):
     index = locs[i]
     bit = int(binEMess[i])
     row = index // (3 * dim[1])
-    col = index % (3 * dim[1])
+    col = (index // 3) % dim[1])
     val = index % 3
 
     img[row][col][val] = setVal(img[row][col][val], bit)
