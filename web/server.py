@@ -31,19 +31,32 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         encode = True
 
         for idx, line in enumerate(data_str):
-            if 'name="image"' in line:
-                filename = line.split('filename="')[1][:-5] # -5 removes right quote and .jpg
+            if 'name="image"' not in line:
+                print(line)
+            if 'name="encode"' in line:
+                encode = data_str[idx + 2] == 'true'
+            elif 'name="image"' in line:
+                filename = line.split('filename="')[1][:-5] # -5 removes right quote and .png
 
-                header = b'\xff\xd8'
-                tail = b'\xff\xd9'
+                # JPG
+                # header = b'\xff\xd8'
+                header_offset = 0
+                # tail = b'\xff\xd9'
+
+                # PNG
+                header = b'PNG'
+                header_offset = -1
+                tail = b'IEND'
+
+                tail_offset = len(tail)
 
                 try:
-                    start = data.index(header)
-                    end = data.index(tail, start) + 2
+                    start = data.index(header) + header_offset
+                    end = data.index(tail, start) + tail_offset
                 except ValueError:
-                    print("Can't find JPEG data!")
+                    print("Can't find image data!")
                     self.respond(400, {
-                        'message': "Can't find JPEG data :("
+                        'message': "Can't find image data :("
                     })
                     return
             elif 'name="secretText"' in line:
@@ -52,13 +65,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 public_key = data_str[idx + 2]
             elif 'name="privateKey"' in line:
                 private_key = data_str[idx + 2]
-                encode = False
             elif 'name="passphrase"' in line:
                 passphrase = data_str[idx + 2]
-                encode = False
 
-        temp_filepath = OUTPUT_FOLDER + filename + TEMP_SUFFIX + '.jpg'
-        output_filepath = OUTPUT_FOLDER + filename + OUTPUT_SUFFIX + '.jpg'
+        temp_filepath = OUTPUT_FOLDER + filename + TEMP_SUFFIX + '.png'
+        output_filepath = OUTPUT_FOLDER + filename + OUTPUT_SUFFIX + '.png'
 
         with open(temp_filepath, 'wb') as f:
             f.write(data[start:end])
@@ -66,17 +77,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if encode:
             ImNaza.sender_job(secret_text, temp_filepath, output_filepath, '../pub.asc')
 
-            # os.remove(temp_filepath)
+            os.remove(temp_filepath)
 
             message = "File saved to: {0}".format(temp_filepath)
         else:
             # decode text from image
 
-            ImNaza.receiver_job(temp_filepath, '../pub.asc', '../priv.asc', passphrase)
+            message = ImNaza.receiver_job(temp_filepath, '../pub.asc', '../priv.asc', passphrase)
 
-            # os.remove(temp_filepath)
-
-            message = 'test123'
+            os.remove(temp_filepath)
 
         self.respond(200, {
             'message': message

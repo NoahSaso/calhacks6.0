@@ -28,6 +28,7 @@ function disable(elem) {
 
 function send(file, encode) {
   let formData = new FormData();
+  formData.append('encode', encode);
   formData.append('image', file);
 
   const secretTextElem = document.getElementById('secrettext');
