@@ -5,6 +5,7 @@ from PIL import Image
 import random
 from matplotlib import pyplot as plt
 import string as strr
+import binascii
 
 def randomSample(pw, length, s): #pw is string, length = len of string dimensions is tuple (l, w)
   passHash = hash(pw)
@@ -59,11 +60,6 @@ def encode(filename, string, password): #filename = string, string = text to enc
   rgb = np.dstack((imgR, imgG, imgB))
   return rgb
 
-string = ''.join(random.choice(strr.ascii_lowercase) for x in range(100))
-print(string)
-encoded = encode("demo.png", string, 4)
-
-plt.imshow(cv2.cvtColor(encoded, cv2.COLOR_BGR2RGB))
 
 ### Real Thing
 
@@ -102,6 +98,7 @@ def read_image(filepath):
   Returns:
   image - 3 x n x m matrix representation of image
   """
+  image = cv2.imread(filepath, flags=cv2.IMREAD_COLOR) # image is in opencv format
   return image
 
 def write_image(image, filepath):
@@ -112,7 +109,7 @@ def write_image(image, filepath):
   Returns:
   None
   """
-  return None
+  cv2.imwrite(filepath, image)
 
 def generate_locations(public_key, length):
   """Generates locations for message.
@@ -132,6 +129,14 @@ def decode_transformed_image(transformed_image, locations):
   Returns:
   encrypted_message - string
   """
+
+  n = transformed_image[0]
+  m = transformed_image[1]
+  bitstring = "0b"
+  for l in locations:
+      bitstring = bitstring + str(transformed_image[l//(3*m)][l//3%m][l%3])
+  bits = int(bitstring, 2)
+  encrypted_message = bits.to_bytes((bits.bit_length() + 7) // 8, 'big').decode()
   return encrypted_message
 
 def decrypt(encrypted_message, public_key):
