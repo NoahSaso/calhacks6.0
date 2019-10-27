@@ -123,6 +123,8 @@ function setIsEncoding(flag, elem) {
 
     textElem.value = '';
     document.getElementById('decoded-output-text').value = '';
+    document.getElementById('pubkey').value = '';
+    document.getElementById('prvkey').value = '';
   }
 
   const encodeButton = document.getElementsByTagName('button')[0];
