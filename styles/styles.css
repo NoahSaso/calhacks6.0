@@ -1,0 +1,156 @@
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0% 0%;
+  width: 100%;
+  background-color: white;
+}
+
+.col {
+  width: 700px;
+  margin: auto;
+  max-width: 700px;
+}
+
+ol {
+  padding: 0;
+}
+
+.med-img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 80%;
+  margin-top: 1.5rem;
+}
+
+#select-image,
+#enter-text,
+#action,
+#loading,
+#decoded-output {
+  visibility: hidden;
+  opacity: 0;
+  transition: all 0.15s ease;
+}
+
+.show {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+#loading {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.65);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#loader {
+  border: 12px solid rgb(200, 200, 200);
+  border-top: 12px solid rgb(58, 166, 146);
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #48325E;
+    color: #eee;
+    background-image: linear-gradient(135deg, #5f2c82, #49a09d);
+  }
+
+  a:link {
+    color: lightpink;
+  }
+  a:visited {
+    color: #50afe5;
+  }
+  a:hover {
+    color: firebrick;
+  }
+  a:active {
+    color: firebrick;
+  }
+
+  img {
+    opacity: 0.75;
+    transition: opacity 0.5s ease-in-out;
+  }
+
+  img:hover {
+    opacity: 1;
+  }
+
+  button {
+    background-color: transparent;
+    border-radius: 1px;
+    border: solid 1px #eee;
+    color: white;
+    padding: 10px;
+    font-size: 1rem;
+    transition: all 0.15s ease-in-out;
+    cursor: pointer;
+    width: 100%;
+  }
+
+  button:hover,
+  button.highlight {
+    background-color: #eee;
+    color: #222;
+  }
+
+  button:active {
+    background-color: #ccc;
+  }
+
+  button.disabled,
+  button.disabled:active {
+    pointer-events: none;
+    cursor: default;
+    background-color: transparent;
+    border-color: rgb(100, 100, 100);
+    color: rgb(100, 100, 100);
+  }
+
+  div#operation-buttons {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+  }
+
+  div#operation-buttons > button {
+    width: 49%;
+  }
+
+  textarea {
+    width: 98%;
+    border-radius: 2px;
+    padding: 5px;
+    color: #222;
+  }
+
+  textarea:disabled {
+    background-color: #fff;
+    color: #222;
+  }
+
+  input[type='file'] {
+    font-size: 100%;
+    cursor: pointer;
+  }
+}
