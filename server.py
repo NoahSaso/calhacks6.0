@@ -74,7 +74,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 passphrase = data_str[idx + 2]
 
         temp_filepath = OUTPUT_FOLDER + filename + TEMP_SUFFIX + ext
-        print(temp_filepath)
         output_filepath = OUTPUT_FOLDER + filename + OUTPUT_SUFFIX + ext
 
         with open(temp_filepath, 'wb') as f:
@@ -90,7 +89,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 status = 400
                 message = str(e)
 
-            # os.remove(temp_filepath)
+            os.remove(temp_filepath)
 
         else:
             # decode text from image
