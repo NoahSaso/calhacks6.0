@@ -4,6 +4,7 @@ from utils import *
 from PIL import Image
 import random
 import pgpy
+import numpy as np
 
 """
 MAIN
@@ -92,10 +93,15 @@ def encode(eMess, img, locs):
   locs: locations for changing the indexes
   '''
   dim = image_shape(img)
-  zeroPadder = makeZeroPadder(8)
+  zeroPadder = makeZeroPadder(8) # works for ascii but should be 21 for all possible unicode values
   eMess = str(len(eMess)) + ":" + eMess
   #converts the message into 1's and zeros.
-  binEMess = ''.join([zeroPadder(bin(ord(c))[2:]) for c in eMess]) #"100100101001001"
+  binEMess = ''.join([zeroPadder(bin(ord(c))[2:]) for c in eMess])  #"100100101001001"
+
+  polynomial_idxs = [i + 1 for i in range(len(eMess))]
+  polynomial_vals = [ord(c) for c in eMess]
+  coeffs = np.polyfit(list(range(len(polynomial_vals))), polynomial_vals, len(polynomial_vals) - 1)
+  print(coeffs)
 
   def setVal(orig, b): # LSB helper function
     if orig % 2 == 0 and b == 1:
@@ -170,6 +176,8 @@ def inverse_transform(transformed_image):
   image = transformed_image
   return image
 
+# TODO: pass in more accurate length to this function later,
+# but for now it just gets the all rgb values * 3 (So all possible bytes)
 def generate_locations(public_key_filepath, length, max_index):
   with open(public_key_filepath, 'r') as f:
     public_key = f.read()
