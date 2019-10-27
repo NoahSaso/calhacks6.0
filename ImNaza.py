@@ -17,14 +17,6 @@ def sender_job(message, source_image_filepath, target_image_filepath, public_key
   encrypted_message = encrypt(message, public_key_filepath)
 
   image = read_image(source_image_filepath)
-  dim_change = False
-
-  #if image.shape[0] % 2 != 0 or image.shape[1] % 2 != 0:
-    #dim_change = True
-    #new_rows = image.shape[0] + (image.shape[0] % 2)
-    #new_cols = image.shape[1] + (image.shape[1] % 2)
-    #image = (Image.new("RGB", (new_rows, new_cols))).paste(image)
-
   shape = image_shape(image)
   message_length = 3 * shape[0] * shape[1]
 
@@ -103,45 +95,46 @@ def encode(eMess, img, locs):
   img: cv img
   locs: locations for changing the indexes
   '''
-  dim = image_shape(img)
   zeroPadder = makeZeroPadder(8)
   eMess = str(len(eMess)) + ":" + eMess
   #converts the message into 1's and zeros.
   binEMess = ''.join([zeroPadder(bin(ord(c))[2:]) for c in eMess]) #"100100101001001"
 
-  def setVal(orig, b): # LSB helper function
+  def setVal(orig, b):  # LSB helper function
+    orig = np.round(orig)
     if orig % 2 == 0 and b == 1:
       return orig + 1
     if orig % 2 == 1 and b == 0:
       return orig - 1
     return orig
-  
+
+  rows = image_shape(img)[0]
+
   for i in range(len(binEMess)):
     l = locs[i]
     bit = int(binEMess[i])
-    row = l // (3 * dim[1])
-    col = (l // 3) % dim[1]
+
+    row = l // (3 * rows)
+    col = (l // 3) % rows
     val = l % 3
 
-    pixel_loc = (col, row)
+    img[row, col, val] = setVal(img[row, col, val], bit)
 
-    pixel = get_pixel(img, pixel_loc)
-    pixel[val] = setVal(pixel[val], bit)
-    set_pixel(img, pixel_loc, pixel)
   return img
 
 def decode_transformed_image(transformed_image, locations):
   encrypted_message = ""
   current_bitstring = ""
   limit = None
-  cols = image_shape(transformed_image)[1]
+
+  rows = image_shape(transformed_image)[0]
 
   for l in locations:
-    row = l // (3 * cols)
-    col = (l // 3) % cols
+    row = l // (3 * rows)
+    col = (l // 3) % rows
 
-    val = get_pixel(transformed_image, (col, row))[l % 3]
-    val_bit = val % 2
+    val = np.round(transformed_image[row, col, l % 3])
+    val_bit = int(val % 2)
     current_bitstring += str(val_bit)
     if len(current_bitstring) == 8:
       # We've read a character.
@@ -151,6 +144,7 @@ def decode_transformed_image(transformed_image, locations):
       current_bitstring = ""
 
       if not limit and c == ":":
+        print(encrypted_message)
         # We've found the header
         try:
           limit = int(encrypted_message[:-1])
@@ -160,6 +154,9 @@ def decode_transformed_image(transformed_image, locations):
       # add/sub 1 because of the colon
       if len(encrypted_message) - len(str(limit)) - 1 == limit:
         return encrypted_message[len(str(limit)) + 1 :]
+
+  print(encrypted_message)
+
   return encrypted_message
 
 def transform(image):
@@ -169,36 +166,36 @@ def transform(image):
   Returns:
   transformed_image - 3 x n x m matrix representation of transformed image
   """
-  rows = image.shape[0]
-  cols = image.shape[1]
   b, g, r = cv2.split(image)
 
   #CODE BASED OFF OF UC BERKELEY EE123 CODE
 
   shape = image_shape(image)
+  rows = shape[0]
+  cols = shape[1]
 
   #making r-transform
-  rfloat = np.float64(r)
+  rfloat = np.float32(r)
   rt = np.zeros(shape)
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       rt[i:(i+8), j:(j+8)] = dct2(rfloat[i:(i+8), j:(j+8)])
 
   #making g-transform
-  gfloat = np.float64(g)
+  gfloat = np.float32(g)
   gt = np.zeros(shape)
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       gt[i:(i+8), j:(j+8)] = dct2(gfloat[i:(i+8), j:(j+8)])
 
   #making b-transform
-  bfloat = np.float64(b)
+  bfloat = np.float32(b)
   bt = np.zeros(shape)
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       bt[i:(i+8), j:(j+8)] = dct2(bfloat[i:(i+8), j:(j+8)])
   #transformed_image = (np.dstack((rt,gt,bt)) * 255)).astype(np.uint8)
-  transformed_image = np.dstack((bt,gt,rt)) * 255.0
+  transformed_image = np.dstack((rt,gt,bt)) * 255.0
   return transformed_image
 
 def inverse_transform(transformed_image):
@@ -209,17 +206,16 @@ def inverse_transform(transformed_image):
   image - 3 x n x m matrix representation of image
   """
 
-  shape = image_shape(transformed_image)
-  rows = shape[0]
-  cols = shape[1]
   bt, gt, rt = cv2.split(transformed_image / 255.0)
 
   #CODE BASED OFF OF UC BERKELEY EE123 CODE
 
   #making r-transform
-  rtfloat = np.float64(rt)
+  rtfloat = np.float32(rt)
 
   shape = image_shape(transformed_image)
+  rows = shape[0]
+  cols = shape[1]
 
   r = np.zeros(shape)
   for i in np.r_[:rows:8]:
@@ -227,7 +223,7 @@ def inverse_transform(transformed_image):
       r[i:(i+8), j:(j+8)] = idct2(rtfloat[i:(i+8), j:(j+8)])
 
   #making g-transform
-  gtfloat = np.float64(gt)
+  gtfloat = np.float32(gt)
 
   g = np.zeros(shape)
   for i in np.r_[:rows:8]:
@@ -235,14 +231,14 @@ def inverse_transform(transformed_image):
       g[i:(i+8), j:(j+8)] = idct2(gtfloat[i:(i+8), j:(j+8)])
 
   #making b-transform
-  btfloat = np.float64(bt)
+  btfloat = np.float32(bt)
 
   b = np.zeros(shape)
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       b[i:(i+8), j:(j+8)] = idct2(btfloat[i:(i+8), j:(j+8)])
 
-  image = np.uint8((np.dstack((b,g,r))))
+  image = np.uint8((np.dstack((r,g,b))))
 
   return image
 
@@ -267,14 +263,6 @@ def generate_locations(public_key_filepath, length, max_index):
 def image_shape(image):
   return image.shape[:-1] # ignore last dim
   # return image.size
-
-def get_pixel(image, location):
-  return image[location[0], location[1]]
-  # return list(image.getpixel(location))
-
-def set_pixel(image, location, rgb):
-  image[location[0], location[1]] = rgb
-  # image.putpixel(location, tuple(rgb))
 
 def read_image(filepath):
   """Retrieves image.
