@@ -15,8 +15,6 @@ MAIN
 """
 
 def sender_job(message, source_image_filepath, target_image_filepath, public_key_filepath):
-  print("SENDER")
-  print(source_image_filepath)
   encrypted_message = encrypt(message, public_key_filepath)
 
   image = read_image(source_image_filepath)
