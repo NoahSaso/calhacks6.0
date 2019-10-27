@@ -7,8 +7,19 @@ import pgpy
 import cv2
 import traceback
 
-ENCRYPTED_MESSAGE_LENGTH = 1024
-DUPLICATES = 100
+ENCRYPTED_MESSAGE_LENGTH = 2048
+DUPLICATES = 50
+
+BIT_IDX = 3 # 0 = MSB, 7 = LSB
+
+zeroPadder = makeZeroPadder(8)
+def get_val(orig, b):
+  bits = zeroPadder(bin(orig)[2:])
+  return int(bits[0:BIT_IDX] + str(b) + bits[BIT_IDX + 1 :], 2)
+
+def get_modified_bit(orig):
+  bits = zeroPadder(bin(orig)[2:])
+  return bits[BIT_IDX]
 
 """
 MAIN
@@ -18,10 +29,12 @@ def sender_job(message, source_image_filepath, target_image_filepath, public_key
   encrypted_message = encrypt(message, public_key_filepath)
 
   image = read_image(source_image_filepath)
+  shape = image_shape(image)
   message_length = ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES
+  max_index = shape[0] * shape[1] * 3
 
   transformed_image = transform(image)
-  locations = generate_locations(public_key_filepath, message_length, message_length)
+  locations = generate_locations(public_key_filepath, message_length, max_index)
   transformed_encoded_image = encode(encrypted_message, transformed_image, locations)
   encoded_image = inverse_transform(transformed_encoded_image)
 
@@ -29,10 +42,12 @@ def sender_job(message, source_image_filepath, target_image_filepath, public_key
 
 def receiver_job(encoded_image_filepath, public_key_filepath, private_key_filepath, passphrase):
   encoded_image = read_image(encoded_image_filepath)
+  shape = image_shape(encoded_image)
   message_length = ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES
+  max_index = shape[0] * shape[1] * 3
 
   transformed_encoded_image = transform(encoded_image)
-  locations = generate_locations(public_key_filepath, message_length, message_length)
+  locations = generate_locations(public_key_filepath, message_length, max_index)
 
   try:
     encrypted_message = decode_transformed_image(transformed_encoded_image, locations)
@@ -101,7 +116,6 @@ def encode(encrypted_msg, img, locs):
   img: cv img
   locs: locations for changing the indexes
   '''
-  zeroPadder = makeZeroPadder(8)
   # encrypted_msg = str(len(encrypted_msg)) + ":" + encrypted_msg
   #converts the message into 1's and zeros.
   if len(encrypted_msg) > ENCRYPTED_MESSAGE_LENGTH:
@@ -110,13 +124,6 @@ def encode(encrypted_msg, img, locs):
   padded_encrypted_msg = encrypted_msg + ' ' * (ENCRYPTED_MESSAGE_LENGTH - len(encrypted_msg))
   # length = ENCRYPTED_MESSAGE_LENGTH * 8
   bin_encrypted_msg = ''.join([zeroPadder(bin(ord(c))[2:]) for c in padded_encrypted_msg]) #"100100101001001"
-
-  def get_val(orig, b): # LSB helper function
-    if orig % 2 == 0 and b == 1:
-      return orig + 1
-    if orig % 2 == 1 and b == 0:
-      return orig - 1
-    return orig
 
   shape = image_shape(img)
   cols = shape[1]
@@ -150,7 +157,7 @@ def decode_transformed_image(transformed_image, locations):
     col = (l // 3) % cols
 
     val = get_pixel(transformed_image, (row, col))[l % 3]
-    bitstring_duplicates[duplicate_idx] += str(val % 2)
+    bitstring_duplicates[duplicate_idx] += get_modified_bit(val)
 
   encrypted_message = ""
   curr_bitstring = ""
