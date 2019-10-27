@@ -2,3 +2,4 @@ web/submissions/
 *.asc
 __pycache__/
 .vscode/
+*~
