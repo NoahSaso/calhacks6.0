@@ -82,6 +82,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 private_key = real_data
             elif 'name="passphrase"' in line:
                 passphrase = real_data
+            elif 'name="prvkeyfile"' in line:
+                prvkeyfile = real_data
+                with open("prv_tmp.asc", "wb") as f:
+                    f.write( bytes(real_data, 'latin-1') );                
+            elif 'name="pubkeyfile"' in line:
+                pubkeyfile = real_data
+                with open("pub_tmp.asc", "wb") as f:
+                    f.write( bytes(real_data, 'latin-1') );
 
         temp_filepath = OUTPUT_FOLDER + filename + TEMP_SUFFIX + ext
         output_filepath = OUTPUT_FOLDER + filename + OUTPUT_SUFFIX + ext
@@ -93,7 +101,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         if encode:
             try:
-                ImNaza.sender_job(secret_text, temp_filepath, output_filepath, 'test_pub.asc')
+                ImNaza.sender_job(secret_text, temp_filepath, output_filepath, 'pub_tmp.asc')
                 message = 'File saved to: {0}'.format(output_filepath)
             except Exception as e:
                 status = 400
@@ -104,12 +112,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         else:
             # decode text from image
             try:
-                message = ImNaza.receiver_job(temp_filepath, 'test_pub.asc', 'test_priv.asc', passphrase)
+                message = ImNaza.receiver_job(temp_filepath, 'pub_tmp.asc', 'prv_tmp.asc', passphrase)
             except Exception as e:
                 status = 400
                 message = str(e)
 
             os.remove(temp_filepath)
+            os.remove('pub_tmp.asc')
+            os.remove('prv_tmp.asc')
 
         self.respond(status, { 'message': message })
 

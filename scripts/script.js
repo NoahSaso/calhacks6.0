@@ -38,11 +38,20 @@ var isEncoding = true;
 
 function send() {
   const imageBase = document.getElementById('file');
-  const file = imageBase.files[0];
+		const file = imageBase.files[0];
+
+		let pubkey = document.getElementById('pubkey').files[0];
+		let prvkey = document.getElementById('prvkey').files;
+		if ( prvkey.length > 0 )
+				prvkey = prvkey[0];
+		else
+				prvkey = "";
 
   let formData = new FormData();
   formData.append('encode', isEncoding);
-  formData.append('image', file);
+		formData.append('image', file);
+		formData.append('pubkeyfile', pubkey);
+		formData.append('prvkeyfile', prvkey);
 
   const textElem = document.getElementById('text');
   formData.append(textElem.getAttribute('key'), textElem.value);
@@ -104,7 +113,8 @@ function setIsEncoding(flag, elem) {
   const textElem = document.getElementById('text');
 
   if (flag !== isEncoding) {
-    hide('select-image');
+			hide('select-image');
+			hide('select-keys');
     hide('enter-text');
     hide('action');
     hide('loading');
@@ -126,8 +136,34 @@ function setIsEncoding(flag, elem) {
   enterTextLabel.innerHTML = isEncoding ? 'Enter the secret text.' : 'Enter your private key passphrase.';
   textElem.setAttribute('key', isEncoding ? 'secretText' : 'passphrase');
 
-  show('select-image');
+		if ( isEncoding )
+		{
+				show('select-image');
+		} else
+		{
+				show('select-keys');
+		}
 }
+
+// KeySelected should only fire after bot
+var keySelected = ( function()
+										{
+												var privSelected = false;
+												var pubSelected = false;
+												return function( keytype )
+												{
+														if ( keytype === "public" )
+																pubSelected = true;
+														if ( keytype === "private" )
+																privSelected = true;
+														if ( privSelected && pubSelected )
+														{
+																show('select-image');
+																privSelected = false;
+																pubSelected = false;
+														}
+												}
+										})()
 
 function copyOutput() {
   const outputElem = document.getElementById('decoded-output-text');
