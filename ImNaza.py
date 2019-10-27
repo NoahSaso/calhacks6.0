@@ -8,8 +8,10 @@ import cv2
 import traceback
 
 ENCRYPTED_MESSAGE_LENGTH = 2048
+# change to 1 if not compressing at all, super fast too
 DUPLICATES = 50
 
+# change to 1 if not compressing at all, super fast too
 BIT_IDX = 3 # 0 = MSB, 7 = LSB
 
 zeroPadder = makeZeroPadder(8)
