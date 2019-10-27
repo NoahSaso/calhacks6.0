@@ -4,6 +4,7 @@ from utils import *
 from PIL import Image
 import random
 import pgpy
+import cv2
 
 """
 MAIN
@@ -13,6 +14,14 @@ def sender_job(message, source_image_filepath, target_image_filepath, public_key
   encrypted_message = encrypt(message, public_key_filepath)
 
   image = read_image(source_image_filepath)
+  dim_change = False
+  
+  #if image.shape[0] % 2 != 0 or image.shape[1] % 2 != 0:
+    #dim_change = True
+    #new_rows = image.shape[0] + (image.shape[0] % 2)
+    #new_cols = image.shape[1] + (image.shape[1] % 2)
+    #image = (Image.new("RGB", (new_rows, new_cols))).paste(image)
+
   shape = image_shape(image)
   message_length = 3 * shape[0] * shape[1]
 
@@ -93,7 +102,6 @@ def encode(eMess, img, locs):
   '''
   dim = image_shape(img)
   zeroPadder = makeZeroPadder(8)
-  eMess = str(len(eMess)) + ":" + eMess
   #converts the message into 1's and zeros.
   binEMess = ''.join([zeroPadder(bin(ord(c))[2:]) for c in eMess]) #"100100101001001"
 
@@ -103,20 +111,18 @@ def encode(eMess, img, locs):
     if orig % 2 == 1 and b == 0:
       return orig - 1
     return orig
+  #now going to place in the top dct's of the image
 
+  l = 0
   for i in range(len(binEMess)):
-    l = locs[i]
-    bit = int(binEMess[i])
-    row = l // (3 * dim[1])
-    col = (l // 3) % dim[1]
-    val = l % 3
+    for j in range(i+1):
+      index = locs[l] % 3 #update later
+      bit = binEMess[l]
+      img[j][i-j][index] = setVal(img[j][i-j][index], bit)
+      l += 1
+return img
 
-    pixel_loc = (col, row)
 
-    pixel = get_pixel(img, pixel_loc)
-    pixel[val] = setVal(pixel[val], bit)
-    set_pixel(img, pixel_loc, pixel)
-  return img
 
 def decode_transformed_image(transformed_image, locations):
   encrypted_message = ""
@@ -124,30 +130,32 @@ def decode_transformed_image(transformed_image, locations):
   limit = None
   cols = image_shape(transformed_image)[1]
 
-  for l in locations:
-    row = l // (3 * cols)
-    col = (l // 3) % cols
+  l = 0
+  for i in range(len(locations)):
+    for j in range(i+1):
+      index = locations[l] % 3 #update later
+      col = j
+      row = i - j
+      val = get_pixel(transformed_image, (col, row))[index]
+      val_bit = val % 2
+      current_bitstring += str(val_bit)
+      if len(current_bitstring) == 8:
+        # We've read a character.
+        char_code = int(current_bitstring, 2)
+        c = chr(char_code)
+        encrypted_message += c
+        current_bitstring = ""
 
-    val = get_pixel(transformed_image, (col, row))[l % 3]
-    val_bit = val % 2
-    current_bitstring += str(val_bit)
-    if len(current_bitstring) == 8:
-      # We've read a character.
-      char_code = int(current_bitstring, 2)
-      c = chr(char_code)
-      encrypted_message += c
-      current_bitstring = ""
-
-      if not limit and c == ":":
-        # We've found the header
-        try:
-          limit = int(encrypted_message[:-1])
-        except:
-          raise Exception('Bad length')
-
+        if not limit and c == ":":
+          # We've found the header
+          try:
+            limit = int(encrypted_message[:-1])
+          except:
+            raise Exception('Bad length')
       # add/sub 1 because of the colon
-      if len(encrypted_message) - len(str(limit)) - 1 == limit:
-        return encrypted_message[len(str(limit)) + 1 :]
+        if len(encrypted_message) - len(str(limit)) - 1 == limit:
+          return encrypted_message[len(str(limit)) + 1 :]
+    l += 1
   return encrypted_message
 
 def transform(image):
@@ -157,7 +165,8 @@ def transform(image):
   Returns:
   transformed_image - 3 x n x m matrix representation of transformed image
   """
-  transformed_image = image
+
+  transformed_image = cv2.dct(image)
   return transformed_image
 
 def inverse_transform(transformed_image):
@@ -167,7 +176,7 @@ def inverse_transform(transformed_image):
   Returns:
   image - 3 x n x m matrix representation of image
   """
-  image = transformed_image
+  image = cv2.idct(transformed_image)
   return image
 
 def generate_locations(public_key_filepath, length, max_index):
