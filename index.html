@@ -27,6 +27,17 @@
           <button onclick="setIsEncoding(false)">Decode</button>
         </div>
       </li>
+      
+      <li id="select-keys">
+	<p id="select-keys-text"> Select a PGP keypair. </p> <br>
+	<label for="pubkey">Public</label>
+	<input type="file" class="upload" name="pubkey" id="pubkey" onchange="keySelected('public')" autocomplete="off">
+	<div id="select-prvkey">
+	  <br>
+	  <label for="prvkey">Private </label>
+	  <input type="file" class="upload" name="prvkey" id="prvkey" onchange="keySelected('private')" autocomplete="off">
+	</div>
+      </li>
 
       <li id="select-image">
         <p> Select an image. </p> <br>
