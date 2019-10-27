@@ -1,4 +1,7 @@
 submissions/
-*.asc
 __pycache__/
 .vscode/
+*~
+*.asc
+!test_pub.asc
+!test_priv.asc
