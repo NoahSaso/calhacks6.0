@@ -28,6 +28,7 @@ function disable(elem) {
 
 function send(file, encode) {
   let formData = new FormData();
+  formData.append('encode', encode);
   formData.append('image', file);
 
   const secretTextElem = document.getElementById('secrettext');
@@ -69,9 +70,16 @@ function send(file, encode) {
         break;
       case 4: // DONE
         const response = JSON.parse(req.response);
-        console.log('DONE', response);
-        if (!encode) {
-          secretTextElem.value = response.message;
+        console.log('DONE', req.status, response);
+        const msg = response.message;
+        if (req.status === 200) {
+          if (encode) {
+            alert(msg);
+          } else {
+            secretTextElem.value = msg;
+          }
+        } else {
+          alert('Error: ' + msg);
         }
         enable(encodeButton);
         enable(decodeButton);
