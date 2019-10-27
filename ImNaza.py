@@ -117,14 +117,16 @@ def encode(encrypted_msg, img, locs):
       return orig - 1
     return orig
 
-  rows = image_shape(img)[0]
+  shape = image_shape(img)
+  rows = shape[0]
+  cols = shape[1]
 
   # ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES
   for i in range(len(bin_encrypted_msg) * DUPLICATES):
     l = locs[i]
     bit = int(bin_encrypted_msg[i % len(bin_encrypted_msg)])
     row = l // (3 * rows)
-    col = (l // 3) % rows
+    col = (l // 3) % cols
     val = l % 3
 
     pixel_loc = (row, col)
@@ -136,14 +138,17 @@ def encode(encrypted_msg, img, locs):
 
 def decode_transformed_image(transformed_image, locations):
   bitstring_duplicates = ['' for _ in range(DUPLICATES)]
-  rows = image_shape(transformed_image)[0]
+
+  shape = image_shape(transformed_image)
+  rows = shape[0]
+  cols = shape[1]
 
   for i in range(ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES):
     duplicate_idx = i // (ENCRYPTED_MESSAGE_LENGTH * 8)
     l = locations[i]
 
     row = l // (3 * rows)
-    col = (l // 3) % rows
+    col = (l // 3) % cols
 
     val = get_pixel(transformed_image, (row, col))[l % 3]
     bitstring_duplicates[duplicate_idx] += str(val % 2)
@@ -196,16 +201,16 @@ def generate_locations(public_key_filepath, length, max_index):
 ### IMAGE DATA ABSTRACTIONS
 
 def image_shape(image):
-  # return image.shape
-  return image.size
+  return image.shape[:-1]
+  # return image.size
 
 def get_pixel(image, location):
-  # return image[location[0], location[1]]
-  return list(image.getpixel(location))
+  return image[location[0], location[1]]
+  # return list(image.getpixel(location))
 
 def set_pixel(image, location, rgb):
-  # image[location[0], location[1]] = rgb
-  image.putpixel(location, tuple(rgb))
+  image[location[0], location[1]] = rgb
+  # image.putpixel(location, tuple(rgb))
 
 def read_image(filepath):
   """Retrieves image.
@@ -214,8 +219,8 @@ def read_image(filepath):
   Returns:
   image - PIL Image object
   """
-  # return cv2.imread(filepath)
-  return Image.open(filepath, 'r')
+  return cv2.imread(filepath)
+  # return Image.open(filepath, 'r')
 
 def write_image(image, filepath):
   """Writes image.
@@ -225,5 +230,5 @@ def write_image(image, filepath):
   Returns:
   None
   """
-  # cv2.imwrite(filepath, image)
-  image.save(filepath)
+  cv2.imwrite(filepath, image)
+  # image.save(filepath)
