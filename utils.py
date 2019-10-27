@@ -63,7 +63,7 @@ def getBinaryPixels(image):
     width, height = image.size
     bitsPerColor = image.bits
     imagePixels = ""
-    
+
     # Only load the image into memory when we need it.
     image = image.load()
 
