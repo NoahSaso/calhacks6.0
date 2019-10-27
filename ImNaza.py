@@ -105,6 +105,7 @@ def encode(eMess, img, locs):
   '''
   dim = image_shape(img)
   zeroPadder = makeZeroPadder(8)
+  eMess = str(len(eMess)) + ":" + eMess
   #converts the message into 1's and zeros.
   binEMess = ''.join([zeroPadder(bin(ord(c))[2:]) for c in eMess]) #"100100101001001"
 
@@ -114,15 +115,25 @@ def encode(eMess, img, locs):
     if orig % 2 == 1 and b == 0:
       return orig - 1
     return orig
+  
   #now going to place in the top dct's of the image
 
-  l = 0
+  eMess = str(len(eMess)) + ":" + eMess
+  #converts the message into 1's and zeros.
+  binEMess = ''.join([zeroPadder(bin(ord(c))[2:]) for c in eMess]) #"100100101001001"
+
   for i in range(len(binEMess)):
-    for j in range(i+1):
-      index = locs[l] % 3 #update later
-      bit = binEMess[l]
-      img[j][i-j][index] = setVal(img[j][i-j][index], bit)
-      l += 1
+    l = locs[i]
+    bit = int(binEMess[i])
+    row = l // (3 * dim[1])
+    col = (l // 3) % dim[1]
+    val = l % 3
+
+    pixel_loc = (col, row)
+
+    pixel = get_pixel(img, pixel_loc)
+    pixel[val] = setVal(pixel[val], bit)
+    set_pixel(img, pixel_loc, pixel)
   return img
 
 
@@ -133,32 +144,30 @@ def decode_transformed_image(transformed_image, locations):
   limit = None
   cols = image_shape(transformed_image)[1]
 
-  l = 0
-  for i in range(len(locations)):
-    for j in range(i+1):
-      index = locations[l] % 3 #update later
-      col = j
-      row = i - j
-      val = get_pixel(transformed_image, (col, row))[index]
-      val_bit = val % 2
-      current_bitstring += str(val_bit)
-      if len(current_bitstring) == 8:
-        # We've read a character.
-        char_code = int(current_bitstring, 2)
-        c = chr(char_code)
-        encrypted_message += c
-        current_bitstring = ""
+  for l in locations:
+    row = l // (3 * cols)
+    col = (l // 3) % cols
 
-        if not limit and c == ":":
-          # We've found the header
-          try:
-            limit = int(encrypted_message[:-1])
-          except:
-            raise Exception('Bad length')
+    val = get_pixel(transformed_image, (col, row))[l % 3]
+    val_bit = val % 2
+    current_bitstring += str(val_bit)
+    if len(current_bitstring) == 8:
+      # We've read a character.
+      char_code = int(current_bitstring, 2)
+      c = chr(char_code)
+      encrypted_message += c
+      current_bitstring = ""
+
+      if not limit and c == ":":
+        # We've found the header
+        try:
+          limit = int(encrypted_message[:-1])
+        except:
+          raise Exception('Bad length')
+
       # add/sub 1 because of the colon
-        if len(encrypted_message) - len(str(limit)) - 1 == limit:
-          return encrypted_message[len(str(limit)) + 1 :]
-    l += 1
+      if len(encrypted_message) - len(str(limit)) - 1 == limit:
+        return encrypted_message[len(str(limit)) + 1 :]
   return encrypted_message
 
 def transform(image):
