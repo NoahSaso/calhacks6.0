@@ -18,7 +18,7 @@ def sender_job(message, source_image_filepath, target_image_filepath, public_key
 
   image = read_image(source_image_filepath)
   dim_change = False
-  
+
   #if image.shape[0] % 2 != 0 or image.shape[1] % 2 != 0:
     #dim_change = True
     #new_rows = image.shape[0] + (image.shape[0] % 2)
@@ -170,7 +170,7 @@ def transform(image):
   """
   rows = image.shape[0]
   cols = image.shape[1]
-  r, g, b = cv2.split(image)
+  b, g, r = cv2.split(image)
 
   #CODE BASED OFF OF UC BERKELEY EE123 CODE
 
@@ -187,7 +187,7 @@ def transform(image):
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       gt[i:(i+8), j:(j+8)] = dct2(gfloat[i:(i+8), j:(j+8)])
-  
+
   #making b-transform
   bfloat = np.float64(b)
   bt = np.zeros(image.shape[:2])
@@ -195,7 +195,7 @@ def transform(image):
     for j in np.r_[:cols:8]:
       bt[i:(i+8), j:(j+8)] = dct2(bfloat[i:(i+8), j:(j+8)])
   #transformed_image = (np.dstack((rt,gt,bt)) * 255)).astype(np.uint8)
-  transformed_image = np.uint8(np.dstack((rt,gt,bt)) / 8.0)
+  transformed_image = np.uint8(np.dstack((bt,gt,rt)) / 8.0)
   for row in transformed_image:
     print(row)
   print(np.amax(transformed_image))
@@ -229,7 +229,7 @@ def inverse_transform(transformed_image):
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       g[i:(i+8), j:(j+8)] = idct2(gtfloat[i:(i+8), j:(j+8)])
-  
+
   #making b-transform
   btfloat = np.float64(bt)
 
@@ -237,7 +237,7 @@ def inverse_transform(transformed_image):
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       b[i:(i+8), j:(j+8)] = idct2(btfloat[i:(i+8), j:(j+8)])
-  
+
   image = np.uint8((np.dstack((r,g,b))) * 8)
   for row in transformed_image:
     print(row)
