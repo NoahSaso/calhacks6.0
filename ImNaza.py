@@ -81,7 +81,9 @@ def decrypt(encrypted_message, private_key_filepath, passphrase):
   else:
     decrypted_message = key.decrypt(msg)
 
-  return decrypted_message.message
+  msg = decrypted_message.message
+
+  return bytes(msg, 'utf-8').decode('unicode_escape') # escape string
 
 """
 IMAGE PROCESSING (ENCODE/DECODE/TRANSFORM)
@@ -110,17 +112,17 @@ def encode(encrypted_msg, img, locs):
       return orig - 1
     return orig
 
-  cols = image_shape(img)[1]
+  rows = image_shape(img)[0]
 
   # ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES
   for i in range(len(bin_encrypted_msg) * DUPLICATES):
     l = locs[i]
     bit = int(bin_encrypted_msg[i % len(bin_encrypted_msg)])
-    row = l // (3 * cols)
-    col = (l // 3) % cols
+    row = l // (3 * rows)
+    col = (l // 3) % rows
     val = l % 3
 
-    pixel_loc = (col, row)
+    pixel_loc = (row, col)
 
     pixel = get_pixel(img, pixel_loc)
     pixel[val] = get_val(pixel[val], bit)
@@ -129,16 +131,16 @@ def encode(encrypted_msg, img, locs):
 
 def decode_transformed_image(transformed_image, locations):
   bitstring_duplicates = ['' for _ in range(DUPLICATES)]
-  cols = image_shape(transformed_image)[1]
+  rows = image_shape(transformed_image)[0]
 
   for i in range(ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES):
     duplicate_idx = i // (ENCRYPTED_MESSAGE_LENGTH * 8)
     l = locations[i]
 
-    row = l // (3 * cols)
-    col = (l // 3) % cols
+    row = l // (3 * rows)
+    col = (l // 3) % rows
 
-    val = get_pixel(transformed_image, (col, row))[l % 3]
+    val = get_pixel(transformed_image, (row, col))[l % 3]
     bitstring_duplicates[duplicate_idx] += str(val % 2)
 
   encrypted_message = ""
