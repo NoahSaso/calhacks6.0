@@ -27,65 +27,74 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         """Handles POST request with image data"""
         cl = int(self.headers.get('Content-Length'))
         data = self.rfile.read(cl)
-        data_str = str(data).split('\\r\\n')
+
+        boundary = '--' + self.headers.get('Content-Type').split('=')[1]
+        data_str = data.decode('latin-1').split(boundary)
 
         encode = True
 
         for idx, line in enumerate(data_str):
+            if 'Content-Disposition' not in line: continue
+            split = line.split('\r\n')
+            second_empty = split.index('', 1)
+            real_data = '\r\n'.join(split[second_empty + 1:-1])
             if 'name="encode"' in line:
-                encode = data_str[idx + 2] == 'true'
+                encode = real_data == 'true'
             elif 'name="image"' in line:
-                path = line.split('filename="')[1][:-1] # -1 removes right quote
+                path = split[1].split('filename="')[1][:-1] # -1 removes right quote
                 filename, ext = os.path.splitext(path)
 
-                if ext[1:].lower() in ['jpg', 'jpeg']:
-                    header = b'\xff\xd8'
-                    header_offset = 0
-                    tail = b'\xff\xd9'
-                    tail_offset = 0
-                elif ext[1:].lower() in ['png']:
-                    header = b'PNG'
-                    header_offset = -1
-                    tail = b'IEND'
-                    tail_offset = 4
-                else:
+                # if ext[1:].lower() in ['jpg', 'jpeg']:
+                #     header = b'\xff\xd8'
+                #     header_offset = 0
+                #     tail = b'\xff\xd9'
+                #     tail_offset = 0
+                # elif ext[1:].lower() in ['png']:
+                #     header = b'PNG'
+                #     header_offset = -1
+                #     tail = b'IEND'
+                #     tail_offset = 4
+                # else:
+                if ext[1:].lower() not in ['jpg', 'jpeg', 'png']:
                     self.respond(400, {
-                        'message': "Filetype {0} not supported".format(ext[1:])
+                        'message': 'Filetype {0} not supported'.format(ext[1:])
                     })
                     return
 
-                tail_offset += len(tail)
+                # tail_offset += len(tail)
 
                 try:
-                    start = data.index(header) + header_offset
-                    end = data.index(tail, start) + tail_offset
+                    real_data_bytes = bytes(real_data, 'latin-1')
+                    img_data_start = data.index(real_data_bytes)
+                    img_data_end = img_data_start + len(real_data_bytes)
                 except ValueError:
                     print("Can't find image data!")
                     self.respond(400, {
                         'message': "Can't find image data :("
                     })
                     return
+
             elif 'name="secretText"' in line:
-                secret_text = data_str[idx + 2]
+                secret_text = real_data
             elif 'name="publicKey"' in line:
-                public_key = data_str[idx + 2]
+                public_key = real_data
             elif 'name="privateKey"' in line:
-                private_key = data_str[idx + 2]
+                private_key = real_data
             elif 'name="passphrase"' in line:
-                passphrase = data_str[idx + 2]
+                passphrase = real_data
 
         temp_filepath = OUTPUT_FOLDER + filename + TEMP_SUFFIX + ext
         output_filepath = OUTPUT_FOLDER + filename + OUTPUT_SUFFIX + ext
 
         with open(temp_filepath, 'wb') as f:
-            f.write(data[start:end])
+            f.write(data[img_data_start:img_data_end])
 
         status = 200
 
         if encode:
             try:
                 ImNaza.sender_job(secret_text, temp_filepath, output_filepath, 'test_pub.asc')
-                message = "File saved to: {0}".format(output_filepath)
+                message = 'File saved to: {0}'.format(output_filepath)
             except Exception as e:
                 status = 400
                 message = str(e)
@@ -101,10 +110,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 server = http.server.HTTPServer(('', PORT), Handler)
 print("Serving at port", PORT)
-webbrowser.open("http://localhost:8888/")
+webbrowser.open('http://localhost:{0}'.format(PORT))
+
 try:
     server.serve_forever()
 except (KeyboardInterrupt, EOFError):
     pass
-print("\nShutting down")
+print('\nShutting down')
 server.server_close()
