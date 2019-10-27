@@ -41,6 +41,7 @@ div.horizontal {
 #enter-text,
 #action,
 #loading,
+#select-prvkey,
 #select-keys,
 #decoded-output {
   visibility: hidden;
