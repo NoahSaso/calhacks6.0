@@ -90,7 +90,6 @@ def decrypt(encrypted_message, private_key_filepath, passphrase):
   """
 
   if 'PGP' not in encrypted_message:
-    print(encrypted_message)
     raise Exception('Invalid PGP Message')
 
   key, _ = pgpy.PGPKey.from_file(private_key_filepath)
