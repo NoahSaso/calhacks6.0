@@ -4,6 +4,7 @@ import http.server
 import json
 import os
 import ImNaza
+import webbrowser
 
 PORT = 8888
 OUTPUT_FOLDER = './submissions/'
@@ -106,7 +107,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 server = http.server.HTTPServer(('', PORT), Handler)
 print("Serving at port", PORT)
-
+webbrowser.open("http://localhost:8888/")
 try:
     server.serve_forever()
 except (KeyboardInterrupt, EOFError):
