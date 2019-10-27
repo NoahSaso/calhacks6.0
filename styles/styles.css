@@ -5,7 +5,9 @@ html {
 body {
   margin: 0% 0%;
   width: 100%;
-  background-color: white;
+  background-color: #48325E;
+  color: #eee;
+  background-image: linear-gradient(135deg, #5f2c82, #49a09d);
 }
 
 * {
@@ -80,90 +82,82 @@ div.horizontal {
   100% { transform: rotate(360deg); }
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #48325E;
-    color: #eee;
-    background-image: linear-gradient(135deg, #5f2c82, #49a09d);
-  }
+a:link {
+  color: lightpink;
+}
+a:visited {
+  color: #50afe5;
+}
+a:hover {
+  color: firebrick;
+}
+a:active {
+  color: firebrick;
+}
 
-  a:link {
-    color: lightpink;
-  }
-  a:visited {
-    color: #50afe5;
-  }
-  a:hover {
-    color: firebrick;
-  }
-  a:active {
-    color: firebrick;
-  }
+img {
+  opacity: 0.75;
+  transition: opacity 0.5s ease-in-out;
+}
 
-  img {
-    opacity: 0.75;
-    transition: opacity 0.5s ease-in-out;
-  }
+img:hover {
+  opacity: 1;
+}
 
-  img:hover {
-    opacity: 1;
-  }
+button {
+  background-color: transparent;
+  border-radius: 1px;
+  border: solid 1px #eee;
+  color: white;
+  padding: 10px;
+  font-size: 1rem;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+  width: 100%;
+}
 
-  button {
-    background-color: transparent;
-    border-radius: 1px;
-    border: solid 1px #eee;
-    color: white;
-    padding: 10px;
-    font-size: 1rem;
-    transition: all 0.15s ease-in-out;
-    cursor: pointer;
-    width: 100%;
-  }
+button:hover,
+button.highlight {
+  background-color: #eee;
+  color: #222;
+}
 
-  button:hover,
-  button.highlight {
-    background-color: #eee;
-    color: #222;
-  }
+button:active {
+  background-color: #ccc;
+}
 
-  button:active {
-    background-color: #ccc;
-  }
+button.disabled,
+button.disabled:active {
+  pointer-events: none;
+  cursor: default;
+  background-color: transparent;
+  border-color: rgb(100, 100, 100);
+  color: rgb(100, 100, 100);
+}
 
-  button.disabled,
-  button.disabled:active {
-    pointer-events: none;
-    cursor: default;
-    background-color: transparent;
-    border-color: rgb(100, 100, 100);
-    color: rgb(100, 100, 100);
-  }
+div#operation-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+}
 
-  div#operation-buttons {
-    display: flex;
-    justify-content: space-between;
-    align-items: stretch;
-  }
+div#operation-buttons > button {
+  width: 49%;
+}
 
-  div#operation-buttons > button {
-    width: 49%;
-  }
+textarea {
+  width: 98%;
+  border-radius: 2px;
+  padding: 5px;
+  color: #222;
+}
 
-  textarea {
-    width: 98%;
-    border-radius: 2px;
-    padding: 5px;
-    color: #222;
-  }
+textarea:disabled {
+  background-color: #fff;
+  color: #222;
+}
 
-  textarea:disabled {
-    background-color: #fff;
-    color: #222;
-  }
-
-  input[type='file'] {
-    font-size: 100%;
-    cursor: pointer;
-  }
+input[type='file'] {
+  font-size: 100%;
+  cursor: pointer;
 }
