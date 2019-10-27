@@ -1,4 +1,4 @@
-web/submissions/
+submissions/
 *.asc
 __pycache__/
 .vscode/
