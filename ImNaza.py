@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 from utils import *
+import os
+import shutil
 from PIL import Image
 import random
 import pgpy
@@ -13,6 +15,9 @@ DUPLICATES = 50
 
 # change to 1 if not compressing at all, super fast too
 BIT_IDX = 3 # 0 = MSB, 7 = LSB
+
+def replicate(src, dest):
+  shutil.copytree(src, dest)
 
 zeroPadder = makeZeroPadder(8)
 def get_val(orig, b):

@@ -36,8 +36,9 @@ function removeClass(elem, c) {
 
 var isEncoding = true;
 
-function send() {
-  const imageBase = document.getElementById('file');
+function send( isReplicating ) {
+
+    const imageBase = document.getElementById('file');
     const file = imageBase.files[0];
     
     let pubkey = document.getElementById('pubkey').files[0];
@@ -48,14 +49,21 @@ function send() {
 	prvkey = "";
     
     let formData = new FormData();
-  formData.append('encode', isEncoding);
-    formData.append('image', file);
-    formData.append('pubkeyfile', pubkey);
-    formData.append('prvkeyfile', prvkey);
-    
-    const textElem = document.getElementById('text');
-    formData.append(textElem.getAttribute('key'), textElem.value);
-    
+
+    if ( isReplicating )
+    {
+	let filepath = prompt("Please enter the complete path to where you'd like to replicate.");
+	formData.append("replicatePath", filepath);	
+    } else
+    {
+	formData.append('encode', isEncoding);
+	formData.append('image', file);
+	formData.append('pubkeyfile', pubkey);
+	formData.append('prvkeyfile', prvkey);
+	
+	const textElem = document.getElementById('text');
+	formData.append(textElem.getAttribute('key'), textElem.value);
+    }
     let req = false;
     try {
     // Safari, Firefox, Opera 8+
@@ -72,10 +80,12 @@ function send() {
 	    }
 	}
     }
-    
-    const buttons = document.getElementsByTagName('button');
-    const encodeButton = buttons[0];
-    const decodeButton = buttons[1];
+    if ( ! isReplicating )
+    {
+	const buttons = document.getElementsByTagName('button');
+	const encodeButton = buttons[0];
+	const decodeButton = buttons[1];
+    }
     
     req.open('POST', '/submit', true);
     req.onreadystatechange = function () {
@@ -92,9 +102,12 @@ function send() {
 		if (isEncoding) {
 		    alert(msg);
 		} else {
-		    document.getElementById('decoded-output-text').value = msg;
-		    show('decoded-output');
-		    window.scrollTo(0, document.body.scrollHeight);
+		    if ( ! isReplicating )
+		    {
+			document.getElementById('decoded-output-text').value = msg;
+			show('decoded-output');
+			window.scrollTo(0, document.body.scrollHeight);
+		    }
 		}
             } else {
 		alert('Error: ' + msg);
@@ -185,4 +198,9 @@ function fileSelected() {
 
 function textUpdated(elem) {
   (elem.value && elem.value.length ? show : hide)('action');
+}
+
+function doReplicate()
+{
+    send(true);
 }

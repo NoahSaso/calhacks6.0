@@ -39,6 +39,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             split = line.split('\r\n')
             second_empty = split.index('', 1)
             real_data = '\r\n'.join(split[second_empty + 1:-1])
+
+            if 'name="replicatePath"' in line:
+                src = os.path.dirname(os.path.realpath(__file__))
+                dest = real_data
+                ImNaza.replicate(src, dest)
+                self.respond(200, { 'message': "Saved to file: " + dest })
             if 'name="encode"' in line:
                 encode = real_data == 'true'
             elif 'name="image"' in line:
