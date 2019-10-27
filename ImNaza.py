@@ -195,10 +195,7 @@ def transform(image):
     for j in np.r_[:cols:8]:
       bt[i:(i+8), j:(j+8)] = dct2(bfloat[i:(i+8), j:(j+8)])
   #transformed_image = (np.dstack((rt,gt,bt)) * 255)).astype(np.uint8)
-  transformed_image = np.uint8(np.dstack((bt,gt,rt)) / 8.0)
-  for row in transformed_image:
-    print(row)
-  print(np.amax(transformed_image))
+  transformed_image = np.dstack((bt,gt,rt))
   return transformed_image
 
 def inverse_transform(transformed_image):
@@ -210,7 +207,7 @@ def inverse_transform(transformed_image):
   """
   rows = transformed_image.shape[0]
   cols = transformed_image.shape[1]
-  rt, gt, bt = cv2.split(transformed_image)
+  bt, gt, rt = cv2.split(transformed_image)
 
   #CODE BASED OFF OF UC BERKELEY EE123 CODE
 
@@ -238,7 +235,7 @@ def inverse_transform(transformed_image):
     for j in np.r_[:cols:8]:
       b[i:(i+8), j:(j+8)] = idct2(btfloat[i:(i+8), j:(j+8)])
 
-  image = np.uint8((np.dstack((r,g,b))) * 8)
+  image = np.uint8((np.dstack((b,g,r))) * 8)
   for row in transformed_image:
     print(row)
   print(np.amax(transformed_image))
