@@ -85,12 +85,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 passphrase = real_data
             elif 'name="prvkeyfile"' in line:
                 prvkeyfile = real_data
-                with open("prv_tmp.asc", "wb") as f:
-                    f.write( bytes(real_data, 'latin-1') );                
+                with open('prv_tmp.asc', 'wb') as f:
+                    f.write(bytes(real_data, 'latin-1'))
             elif 'name="pubkeyfile"' in line:
                 pubkeyfile = real_data
-                with open("pub_tmp.asc", "wb") as f:
-                    f.write( bytes(real_data, 'latin-1') );
+                with open('pub_tmp.asc', 'wb') as f:
+                    f.write(bytes(real_data, 'latin-1'))
 
         temp_filepath = OUTPUT_FOLDER + filename + TEMP_SUFFIX + ext
         output_filepath = OUTPUT_FOLDER + filename + OUTPUT_SUFFIX + ext
