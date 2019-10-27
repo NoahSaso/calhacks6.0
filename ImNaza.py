@@ -195,8 +195,6 @@ def inverse_transform(transformed_image):
   image = transformed_image
   return image
 
-# TODO: pass in more accurate length to this function later,
-# but for now it just gets the all rgb values * 3 (So all possible bytes)
 def generate_locations(public_key_filepath, length, max_index):
   with open(public_key_filepath, 'rb') as f:
     public_key = f.read()
