@@ -9,6 +9,10 @@ import numpy as np
 import cv2
 import scipy.fftpack
 
+DUPLICATES = 50
+ENCRYPTED_MESSAGE_LENGTH = 880
+zeroPadder = makeZeroPadder(8)
+
 """
 MAIN
 """
@@ -18,10 +22,11 @@ def sender_job(message, source_image_filepath, target_image_filepath, public_key
 
   image = read_image(source_image_filepath)
   shape = image_shape(image)
-  message_length = 3 * shape[0] * shape[1]
+  message_length = ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES
+  max_length = 3 * shape[0] * shape[1]
 
   transformed_image = transform(image)
-  locations = generate_locations(public_key_filepath, message_length, message_length)
+  locations = generate_locations(public_key_filepath, message_length, max_length)
   transformed_encoded_image = encode(encrypted_message, transformed_image, locations)
   encoded_image = inverse_transform(transformed_encoded_image)
 
@@ -30,10 +35,11 @@ def sender_job(message, source_image_filepath, target_image_filepath, public_key
 def receiver_job(encoded_image_filepath, public_key_filepath, private_key_filepath, passphrase):
   encoded_image = read_image(encoded_image_filepath)
   shape = image_shape(encoded_image)
-  message_length = 3 * shape[0] * shape[1]
+  message_length = ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES
+  max_length = 3 * shape[0] * shape[1]
 
   transformed_encoded_image = transform(encoded_image)
-  locations = generate_locations(public_key_filepath, message_length, message_length)
+  locations = generate_locations(public_key_filepath, message_length, max_length)
 
   try:
     encrypted_message = decode_transformed_image(transformed_encoded_image, locations)
@@ -89,16 +95,12 @@ def decrypt(encrypted_message, private_key_filepath, passphrase):
 IMAGE PROCESSING (ENCODE/DECODE/TRANSFORM)
 """
 
-def encode(eMess, img, locs):
+def encode(encrypted_msg, img, locs):
   '''
-  eMess: encrypted message
+  encrypted_msg: encrypted message
   img: cv img
   locs: locations for changing the indexes
   '''
-  zeroPadder = makeZeroPadder(8)
-  eMess = str(len(eMess)) + ":" + eMess
-  #converts the message into 1's and zeros.
-  binEMess = ''.join([zeroPadder(bin(ord(c))[2:]) for c in eMess]) #"100100101001001"
 
   def setVal(orig, b):  # LSB helper function
     orig = np.round(orig)
@@ -108,14 +110,26 @@ def encode(eMess, img, locs):
       return orig - 1
     return orig
 
-  rows = image_shape(img)[0]
+  # encrypted_msg = str(len(encrypted_msg)) + ":" + encrypted_msg
+  #converts the message into 1's and zeros.
+  if len(encrypted_msg) > ENCRYPTED_MESSAGE_LENGTH:
+    raise Exception('Encrypted message too long')
+  # length = ENCRYPTED_MESSAGE_LENGTH
+  print(len(encrypted_msg))
+  padded_encrypted_msg = encrypted_msg + ' ' * (ENCRYPTED_MESSAGE_LENGTH - len(encrypted_msg))
+  # length = ENCRYPTED_MESSAGE_LENGTH * 8
+  bin_encrypted_msg = ''.join([zeroPadder(bin(ord(c))[2:]) for c in padded_encrypted_msg]) #"100100101001001"
 
-  for i in range(len(binEMess)):
+  shape = image_shape(img)
+  cols = shape[1]
+
+  # ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES
+  for i in range(len(bin_encrypted_msg) * DUPLICATES):
     l = locs[i]
-    bit = int(binEMess[i])
-
-    row = l // (3 * rows)
-    col = (l // 3) % rows
+    bit = int(bin_encrypted_msg[i % len(bin_encrypted_msg)])
+    
+    row = l // (3 * cols)
+    col = (l // 3) % cols
     val = l % 3
 
     img[row, col, val] = setVal(img[row, col, val], bit)
@@ -123,40 +137,34 @@ def encode(eMess, img, locs):
   return img
 
 def decode_transformed_image(transformed_image, locations):
+  bitstring_duplicates = ['' for _ in range(DUPLICATES)]
+
+  shape = image_shape(transformed_image)
+  cols = shape[1]
+
+  for i in range(ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES):
+    duplicate_idx = i // (ENCRYPTED_MESSAGE_LENGTH * 8)
+    l = locations[i]
+
+    row = l // (3 * cols)
+    col = (l // 3) % cols
+
+    val = transformed_image[row, col, l % 3]
+    print(int(val))
+    bitstring_duplicates[duplicate_idx] += str(int(val) % 2)
+
   encrypted_message = ""
-  current_bitstring = ""
-  limit = None
-
-  rows = image_shape(transformed_image)[0]
-
-  for l in locations:
-    row = l // (3 * rows)
-    col = (l // 3) % rows
-
-    val = np.round(transformed_image[row, col, l % 3])
-    val_bit = int(val % 2)
-    current_bitstring += str(val_bit)
-    if len(current_bitstring) == 8:
+  curr_bitstring = ""
+  for i in range(ENCRYPTED_MESSAGE_LENGTH * 8):
+    bit_duplicates = [bitstring[i] for bitstring in bitstring_duplicates]
+    bit = max(bit_duplicates, key=bit_duplicates.count)
+    curr_bitstring += bit
+    if len(curr_bitstring) == 8:
       # We've read a character.
-      char_code = int(current_bitstring, 2)
+      char_code = int(curr_bitstring, 2)
       c = chr(char_code)
       encrypted_message += c
-      current_bitstring = ""
-
-      if not limit and c == ":":
-        print(encrypted_message)
-        # We've found the header
-        try:
-          limit = int(encrypted_message[:-1])
-        except:
-          raise Exception('Bad length')
-
-      # add/sub 1 because of the colon
-      if len(encrypted_message) - len(str(limit)) - 1 == limit:
-        return encrypted_message[len(str(limit)) + 1 :]
-
-  print(encrypted_message)
-
+      curr_bitstring = ""
   return encrypted_message
 
 def transform(image):
@@ -211,7 +219,8 @@ def inverse_transform(transformed_image):
   #CODE BASED OFF OF UC BERKELEY EE123 CODE
 
   #making r-transform
-  rtfloat = np.float32(rt)
+  #rtfloat = np.float32(rt)
+  rtfloat = rt
 
   shape = image_shape(transformed_image)
   rows = shape[0]
@@ -223,22 +232,22 @@ def inverse_transform(transformed_image):
       r[i:(i+8), j:(j+8)] = idct2(rtfloat[i:(i+8), j:(j+8)])
 
   #making g-transform
-  gtfloat = np.float32(gt)
-
+  #gtfloat = np.float32(gt)
+  gtfloat = gt
   g = np.zeros(shape)
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       g[i:(i+8), j:(j+8)] = idct2(gtfloat[i:(i+8), j:(j+8)])
 
   #making b-transform
-  btfloat = np.float32(bt)
-
+  #btfloat = np.float32(bt)
+  btfloat = bt
   b = np.zeros(shape)
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       b[i:(i+8), j:(j+8)] = idct2(btfloat[i:(i+8), j:(j+8)])
 
-  image = np.uint8((np.dstack((r,g,b))))
+  image = np.round(np.dstack((r,g,b)))
 
   return image
 
@@ -251,9 +260,9 @@ def idct2(block):
   return cv2.idct(block)
 
 def generate_locations(public_key_filepath, length, max_index):
-  with open(public_key_filepath, 'r') as f:
+  with open(public_key_filepath, 'rb') as f:
     public_key = f.read()
-  pubHash = hash(public_key)
+  pubHash = hashing_function_that_goddamn_works_correctly(public_key)
   random.seed(pubHash)
   result = random.sample(range(max_index), length)
   return result
