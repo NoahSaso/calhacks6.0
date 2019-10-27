@@ -27,20 +27,18 @@ function disable(elem) {
 }
 
 function send(file, encode) {
-  let formData = new FormData();
-  formData.append('encode', encode);
-  formData.append('image', file);
+    console.log("SEND!!");
+    let formData = new FormData();
+    formData.append('encode', encode);
+    formData.append('image', file);
 
-  const secretTextElem = document.getElementById('secrettext');
-  const passphrase = document.getElementById('passphrase').value;
-
-  // formData.append('publicKey', publicKey);
-  if (encode) {
-    formData.append('secretText', secretTextElem.value);
-  } else {
-    // formData.append('privateKey', privateKey);
-    formData.append('passphrase', passphrase);
-  }
+    if (encode) {
+	const secretTextElem = document.getElementById('secrettext');
+	formData.append('secretText', secretTextElem.value);
+    } else {
+	passphrase = prompt("Enter your private key password please.");
+	formData.append('passphrase', passphrase);
+    }
 
   let req = false;
   try {
@@ -76,6 +74,9 @@ function send(file, encode) {
           if (encode) {
             alert(msg);
           } else {
+	      // TODO(zeke): toggle(result) and then
+	      //	      toggle('itemlist');
+	      alert(msg);
             secretTextElem.value = msg;
           }
         } else {

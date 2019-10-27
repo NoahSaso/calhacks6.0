@@ -4,7 +4,7 @@ import http.server
 import json
 import os
 import ImNaza
-import cgi
+import webbrowser
 
 PORT = 8888
 OUTPUT_FOLDER = './submissions/'
@@ -103,19 +103,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         else:
             # decode text from image
-
-            try:
-                message = ImNaza.receiver_job(temp_filepath, 'test_pub.asc', 'test_priv.asc', passphrase)
-            except Exception as e:
-                status = 400
-                message = str(e)
-
+            message = ImNaza.receiver_job(temp_filepath, 'test_pub.asc', 'test_priv.asc', passphrase)
             os.remove(temp_filepath)
 
         self.respond(status, { 'message': message })
 
 server = http.server.HTTPServer(('', PORT), Handler)
-print('Serving at port', PORT)
+print("Serving at port", PORT)
+webbrowser.open('http://localhost:{0}'.format(PORT))
 
 try:
     server.serve_forever()
