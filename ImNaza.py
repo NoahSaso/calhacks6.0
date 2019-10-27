@@ -4,6 +4,7 @@ from utils import *
 from PIL import Image
 import random
 import pgpy
+import cv2
 
 ENCRYPTED_MESSAGE_LENGTH = 1024
 DUPLICATES = 50
@@ -36,6 +37,8 @@ def receiver_job(encoded_image_filepath, public_key_filepath, private_key_filepa
     encrypted_message = decode_transformed_image(transformed_encoded_image, locations)
     message = decrypt(encrypted_message, private_key_filepath, passphrase)
   except Exception as e:
+    if 'passphrase' not in str(e).lower():
+      raise Exception("{0} (image probably doesn't contain any data)".format(str(e)))
     raise e
 
   return message
@@ -43,8 +46,6 @@ def receiver_job(encoded_image_filepath, public_key_filepath, private_key_filepa
 """
 ENCRYPTION ABSTRACTIONS
 """
-
-UNIQUE_END_DELIMITER = '\n-----END PGP MESSAGE-----\n'
 
 def encrypt(message, public_key_filepath):
   """Applies PGP encryption to message.
@@ -153,8 +154,6 @@ def decode_transformed_image(transformed_image, locations):
       encrypted_message += c
       curr_bitstring = ""
 
-  print(encrypted_message)
-
   return encrypted_message
 
 def transform(image):
@@ -190,13 +189,16 @@ def generate_locations(public_key_filepath, length, max_index):
 ### IMAGE DATA ABSTRACTIONS
 
 def image_shape(image):
+  # return image.shape
   return image.size
 
 def get_pixel(image, location):
+  # return image[location[0], location[1]]
   return list(image.getpixel(location))
 
 def set_pixel(image, location, rgb):
-  return image.putpixel(location, tuple(rgb))
+  # image[location[0], location[1]] = rgb
+  image.putpixel(location, tuple(rgb))
 
 def read_image(filepath):
   """Retrieves image.
@@ -205,6 +207,7 @@ def read_image(filepath):
   Returns:
   image - PIL Image object
   """
+  # return cv2.imread(filepath)
   return Image.open(filepath, 'r')
 
 def write_image(image, filepath):
@@ -215,4 +218,5 @@ def write_image(image, filepath):
   Returns:
   None
   """
+  # cv2.imwrite(filepath, image)
   image.save(filepath)
