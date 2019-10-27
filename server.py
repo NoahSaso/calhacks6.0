@@ -5,6 +5,7 @@ import json
 import os
 import ImNaza
 import webbrowser
+from PIL import Image
 
 PORT = 8888
 OUTPUT_FOLDER = './submissions/'
@@ -96,6 +97,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         with open(temp_filepath, 'wb') as f:
             f.write(data[img_data_start:img_data_end])
+
+        # convert jpg to png for now
+        if ext[1:].lower() in ['jpg', 'jpeg']:
+            temp_filepath_png = OUTPUT_FOLDER + filename + TEMP_SUFFIX + '.png'
+
+            Image.open(temp_filepath).save(temp_filepath_png) # load in jpg and save as png
+            os.remove(temp_filepath) # remove jpg temp file
+
+            # update paths before sent to script
+            temp_filepath = temp_filepath_png
+            output_filepath = OUTPUT_FOLDER + filename + OUTPUT_SUFFIX + '.png'
 
         status = 200
 

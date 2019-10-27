@@ -7,8 +7,21 @@ import pgpy
 import cv2
 import traceback
 
-ENCRYPTED_MESSAGE_LENGTH = 1024
+ENCRYPTED_MESSAGE_LENGTH = 2048
+# change to 1 if not compressing at all, super fast too
 DUPLICATES = 50
+
+# change to 1 if not compressing at all, super fast too
+BIT_IDX = 3 # 0 = MSB, 7 = LSB
+
+zeroPadder = makeZeroPadder(8)
+def get_val(orig, b):
+  bits = zeroPadder(bin(orig)[2:])
+  return int(bits[0:BIT_IDX] + str(b) + bits[BIT_IDX + 1 :], 2)
+
+def get_modified_bit(orig):
+  bits = zeroPadder(bin(orig)[2:])
+  return bits[BIT_IDX]
 
 """
 MAIN
@@ -18,10 +31,12 @@ def sender_job(message, source_image_filepath, target_image_filepath, public_key
   encrypted_message = encrypt(message, public_key_filepath)
 
   image = read_image(source_image_filepath)
+  shape = image_shape(image)
   message_length = ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES
+  max_index = shape[0] * shape[1] * 3
 
   transformed_image = transform(image)
-  locations = generate_locations(public_key_filepath, message_length, message_length)
+  locations = generate_locations(public_key_filepath, message_length, max_index)
   transformed_encoded_image = encode(encrypted_message, transformed_image, locations)
   encoded_image = inverse_transform(transformed_encoded_image)
 
@@ -29,10 +44,12 @@ def sender_job(message, source_image_filepath, target_image_filepath, public_key
 
 def receiver_job(encoded_image_filepath, public_key_filepath, private_key_filepath, passphrase):
   encoded_image = read_image(encoded_image_filepath)
+  shape = image_shape(encoded_image)
   message_length = ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES
+  max_index = shape[0] * shape[1] * 3
 
   transformed_encoded_image = transform(encoded_image)
-  locations = generate_locations(public_key_filepath, message_length, message_length)
+  locations = generate_locations(public_key_filepath, message_length, max_index)
 
   try:
     encrypted_message = decode_transformed_image(transformed_encoded_image, locations)
@@ -100,7 +117,6 @@ def encode(encrypted_msg, img, locs):
   img: cv img
   locs: locations for changing the indexes
   '''
-  zeroPadder = makeZeroPadder(8)
   # encrypted_msg = str(len(encrypted_msg)) + ":" + encrypted_msg
   #converts the message into 1's and zeros.
   if len(encrypted_msg) > ENCRYPTED_MESSAGE_LENGTH:
@@ -110,21 +126,15 @@ def encode(encrypted_msg, img, locs):
   # length = ENCRYPTED_MESSAGE_LENGTH * 8
   bin_encrypted_msg = ''.join([zeroPadder(bin(ord(c))[2:]) for c in padded_encrypted_msg]) #"100100101001001"
 
-  def get_val(orig, b): # LSB helper function
-    if orig % 2 == 0 and b == 1:
-      return orig + 1
-    if orig % 2 == 1 and b == 0:
-      return orig - 1
-    return orig
-
-  rows = image_shape(img)[0]
+  shape = image_shape(img)
+  cols = shape[1]
 
   # ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES
   for i in range(len(bin_encrypted_msg) * DUPLICATES):
     l = locs[i]
     bit = int(bin_encrypted_msg[i % len(bin_encrypted_msg)])
-    row = l // (3 * rows)
-    col = (l // 3) % rows
+    row = l // (3 * cols)
+    col = (l // 3) % cols
     val = l % 3
 
     pixel_loc = (row, col)
@@ -136,17 +146,19 @@ def encode(encrypted_msg, img, locs):
 
 def decode_transformed_image(transformed_image, locations):
   bitstring_duplicates = ['' for _ in range(DUPLICATES)]
-  rows = image_shape(transformed_image)[0]
+
+  shape = image_shape(transformed_image)
+  cols = shape[1]
 
   for i in range(ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES):
     duplicate_idx = i // (ENCRYPTED_MESSAGE_LENGTH * 8)
     l = locations[i]
 
-    row = l // (3 * rows)
-    col = (l // 3) % rows
+    row = l // (3 * cols)
+    col = (l // 3) % cols
 
     val = get_pixel(transformed_image, (row, col))[l % 3]
-    bitstring_duplicates[duplicate_idx] += str(val % 2)
+    bitstring_duplicates[duplicate_idx] += get_modified_bit(val)
 
   encrypted_message = ""
   curr_bitstring = ""
@@ -186,9 +198,9 @@ def inverse_transform(transformed_image):
 # TODO: pass in more accurate length to this function later,
 # but for now it just gets the all rgb values * 3 (So all possible bytes)
 def generate_locations(public_key_filepath, length, max_index):
-  with open(public_key_filepath, 'r') as f:
+  with open(public_key_filepath, 'rb') as f:
     public_key = f.read()
-  pubHash = hash(public_key)
+  pubHash = hashing_function_that_goddamn_works_correctly(public_key)
   random.seed(pubHash)
   result = random.sample(range(max_index), length)
   return result
@@ -196,16 +208,16 @@ def generate_locations(public_key_filepath, length, max_index):
 ### IMAGE DATA ABSTRACTIONS
 
 def image_shape(image):
-  # return image.shape
-  return image.size
+  return image.shape[:-1]
+  # return image.size
 
 def get_pixel(image, location):
-  # return image[location[0], location[1]]
-  return list(image.getpixel(location))
+  return image[location[0], location[1]]
+  # return list(image.getpixel(location))
 
 def set_pixel(image, location, rgb):
-  # image[location[0], location[1]] = rgb
-  image.putpixel(location, tuple(rgb))
+  image[location[0], location[1]] = rgb
+  # image.putpixel(location, tuple(rgb))
 
 def read_image(filepath):
   """Retrieves image.
@@ -214,8 +226,8 @@ def read_image(filepath):
   Returns:
   image - PIL Image object
   """
-  # return cv2.imread(filepath)
-  return Image.open(filepath, 'r')
+  return cv2.imread(filepath)
+  # return Image.open(filepath, 'r')
 
 def write_image(image, filepath):
   """Writes image.
@@ -225,5 +237,5 @@ def write_image(image, filepath):
   Returns:
   None
   """
-  # cv2.imwrite(filepath, image)
-  image.save(filepath)
+  cv2.imwrite(filepath, image)
+  # image.save(filepath)

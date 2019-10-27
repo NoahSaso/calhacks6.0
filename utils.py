@@ -1,4 +1,5 @@
 from PIL import Image
+from zlib import adler32
 
 def memoize(f):
     ''' Memoization decorator for functions taking one or more arguments. '''
@@ -73,3 +74,6 @@ def getBinaryPixels(image):
             imagePixels += rbgToBinary(r, g, b, bitsPerColor)
 
     return imagePixels, image
+
+def hashing_function_that_goddamn_works_correctly(b):
+    return adler32(b) & 0xffffffff # Always returns an unsigned value. "& 0xffffffff" generates the same numeric value across all Python versions and platforms
