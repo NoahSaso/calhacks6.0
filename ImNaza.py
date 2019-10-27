@@ -189,9 +189,9 @@ def inverse_transform(transformed_image):
 # TODO: pass in more accurate length to this function later,
 # but for now it just gets the all rgb values * 3 (So all possible bytes)
 def generate_locations(public_key_filepath, length, max_index):
-  with open(public_key_filepath, 'r') as f:
+  with open(public_key_filepath, 'rb') as f:
     public_key = f.read()
-  pubHash = hash(public_key)
+  pubHash = hashing_function_that_goddamn_works_correctly(public_key)
   random.seed(pubHash)
   result = random.sample(range(max_index), length)
   return result
