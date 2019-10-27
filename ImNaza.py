@@ -116,12 +116,6 @@ def encode(eMess, img, locs):
       return orig - 1
     return orig
   
-  #now going to place in the top dct's of the image
-
-  eMess = str(len(eMess)) + ":" + eMess
-  #converts the message into 1's and zeros.
-  binEMess = ''.join([zeroPadder(bin(ord(c))[2:]) for c in eMess]) #"100100101001001"
-
   for i in range(len(binEMess)):
     l = locs[i]
     bit = int(binEMess[i])
