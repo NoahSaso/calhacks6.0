@@ -175,30 +175,30 @@ def transform(image):
   #CODE BASED OFF OF UC BERKELEY EE123 CODE
 
   #making r-transform
-  #rfloat = np.float64(r) / 255.0
-  rfloat = r
+  rfloat = np.float64(r)
   rt = np.zeros(image.shape[:2])
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       rt[i:(i+8), j:(j+8)] = dct2(rfloat[i:(i+8), j:(j+8)])
 
   #making g-transform
-  #gfloat = np.float64(g)/255.0
-  gfloat = g
+  gfloat = np.float64(g)
   gt = np.zeros(image.shape[:2])
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       gt[i:(i+8), j:(j+8)] = dct2(gfloat[i:(i+8), j:(j+8)])
   
   #making b-transform
-  #bfloat = np.float64(b)/255.0
-  bfloat = b
+  bfloat = np.float64(b)
   bt = np.zeros(image.shape[:2])
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       bt[i:(i+8), j:(j+8)] = dct2(bfloat[i:(i+8), j:(j+8)])
   #transformed_image = (np.dstack((rt,gt,bt)) * 255)).astype(np.uint8)
-  transformed_image = np.dstack((rt,gt,bt)).astype(np.uint8)
+  transformed_image = np.uint8(np.dstack((rt,gt,bt)) / 8.0)
+  for row in transformed_image:
+    print(row)
+  print(np.amax(transformed_image))
   return transformed_image
 
 def inverse_transform(transformed_image):
@@ -215,8 +215,7 @@ def inverse_transform(transformed_image):
   #CODE BASED OFF OF UC BERKELEY EE123 CODE
 
   #making r-transform
-  #rtfloat = np.float64(rt) / 255.0
-  rtfloat = rt
+  rtfloat = np.float64(rt)
 
   r = np.zeros(transformed_image.shape[:2])
   for i in np.r_[:rows:8]:
@@ -224,8 +223,7 @@ def inverse_transform(transformed_image):
       r[i:(i+8), j:(j+8)] = idct2(rtfloat[i:(i+8), j:(j+8)])
 
   #making g-transform
-  #gtfloat = np.float64(gt) / 255.0
-  gtfloat = gt
+  gtfloat = np.float64(gt)
 
   g = np.zeros(transformed_image.shape[:2])
   for i in np.r_[:rows:8]:
@@ -233,15 +231,20 @@ def inverse_transform(transformed_image):
       g[i:(i+8), j:(j+8)] = idct2(gtfloat[i:(i+8), j:(j+8)])
   
   #making b-transform
-  #btfloat = np.float64(bt)/255.0
-  btfloat = bt
+  btfloat = np.float64(bt)
 
   b = np.zeros(transformed_image.shape[:2])
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       b[i:(i+8), j:(j+8)] = idct2(btfloat[i:(i+8), j:(j+8)])
   
-  image = np.dstack((r,g,b)).astype(np.uint8)
+  image = np.uint8((np.dstack((r,g,b))) * 8)
+  for row in transformed_image:
+    print(row)
+  print(np.amax(transformed_image))
+  for row in image:
+    print(row)
+  print(np.amax(image))
 
   #for i in range(rows):
   #  for j in range(cols):
@@ -251,12 +254,11 @@ def inverse_transform(transformed_image):
 
 def dct2(block):
   #does dct2 on block
-  return scipy.fftpack.dct(scipy.fftpack.dct(block, axis=0, norm=None), axis=1, norm=None)
+  return cv2.dct(block)
 
 def idct2(block):
   #does exactly what you think it does
-  return scipy.fftpack.idct(scipy.fftpack.idct(block, axis=0, norm=None),  axis=1, norm=None)
-
+  return cv2.idct(block)
 def generate_locations(public_key_filepath, length, max_index):
   with open(public_key_filepath, 'r') as f:
     public_key = f.read()
