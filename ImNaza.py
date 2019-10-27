@@ -196,7 +196,6 @@ def read_image(filepath):
   Returns:
   image - 3 x n x m matrix representation of image
   """
-  print(filepath)
   return Image.open(filepath, 'r')
 
 def write_image(image, filepath):
