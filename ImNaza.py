@@ -5,6 +5,7 @@ from PIL import Image
 import random
 import pgpy
 import cv2
+import numpy as np
 
 """
 MAIN
@@ -120,7 +121,7 @@ def encode(eMess, img, locs):
       bit = binEMess[l]
       img[j][i-j][index] = setVal(img[j][i-j][index], bit)
       l += 1
-return img
+  return img
 
 
 
@@ -166,6 +167,10 @@ def transform(image):
   transformed_image - 3 x n x m matrix representation of transformed image
   """
 
+  r, g, b = cv2.split(image)
+  rt = cv2.dct(np.float32(r)/255.0)
+  gt = cv2.dct(np.float32(g)/255.0)
+  bt = cv2.dct(np.float32(b)/255.0)
   transformed_image = cv2.dct(image)
   return transformed_image
 
@@ -176,7 +181,7 @@ def inverse_transform(transformed_image):
   Returns:
   image - 3 x n x m matrix representation of image
   """
-  image = cv2.idct(transformed_image)
+  image = cv2.idct(transformed_image) # doesn't work
   return image
 
 def generate_locations(public_key_filepath, length, max_index):
