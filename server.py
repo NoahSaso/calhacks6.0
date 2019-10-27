@@ -34,19 +34,24 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if 'name="encode"' in line:
                 encode = data_str[idx + 2] == 'true'
             elif 'name="image"' in line:
-                filename = line.split('filename="')[1][:-5] # -5 removes right quote and .png
+                path = line.split('filename="')[1][:-1] # -1 removes right quote
+                filename, ext = os.path.splitext(path)
 
-                # JPG
-                # header = b'\xff\xd8'
-                # header_offset = 0
-                # tail = b'\xff\xd9'
-                # tail_offset = 0
-
-                # PNG
-                header = b'PNG'
-                header_offset = -1
-                tail = b'IEND'
-                tail_offset = 4
+                if ext[1:].lower() in ['jpg', 'jpeg']:
+                    header = b'\xff\xd8'
+                    header_offset = 0
+                    tail = b'\xff\xd9'
+                    tail_offset = 0
+                elif ext[1:].lower() in ['png']:
+                    header = b'PNG'
+                    header_offset = -1
+                    tail = b'IEND'
+                    tail_offset = 4
+                else:
+                    self.respond(400, {
+                        'message': "Filetype {0} not supported".format(ext[1:])
+                    })
+                    return
 
                 tail_offset += len(tail)
 
@@ -68,8 +73,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             elif 'name="passphrase"' in line:
                 passphrase = data_str[idx + 2]
 
-        temp_filepath = OUTPUT_FOLDER + filename + TEMP_SUFFIX + '.png'
-        output_filepath = OUTPUT_FOLDER + filename + OUTPUT_SUFFIX + '.png'
+        temp_filepath = OUTPUT_FOLDER + filename + TEMP_SUFFIX + ext
+        output_filepath = OUTPUT_FOLDER + filename + OUTPUT_SUFFIX + ext
 
         with open(temp_filepath, 'wb') as f:
             f.write(data[start:end])
