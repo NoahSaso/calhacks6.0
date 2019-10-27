@@ -8,6 +8,10 @@ body {
   background-color: white;
 }
 
+* {
+  font-family: Comfortaa;
+}
+
 .col {
   width: 700px;
   margin: auto;
@@ -16,6 +20,13 @@ body {
 
 ol {
   padding: 0;
+}
+
+div.horizontal {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
 }
 
 .med-img {
