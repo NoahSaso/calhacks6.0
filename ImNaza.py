@@ -4,8 +4,10 @@ from utils import *
 from PIL import Image
 import random
 import pgpy
-import cv2
+import scipy
 import numpy as np
+import cv2
+import scipy.fftpack
 
 """
 MAIN
@@ -166,12 +168,37 @@ def transform(image):
   Returns:
   transformed_image - 3 x n x m matrix representation of transformed image
   """
-
+  rows = image.shape[0]
+  cols = image.shape[1]
   r, g, b = cv2.split(image)
-  rt = cv2.dct(np.float32(r)/255.0)
-  gt = cv2.dct(np.float32(g)/255.0)
-  bt = cv2.dct(np.float32(b)/255.0)
-  transformed_image = cv2.dct(image)
+
+  #CODE BASED OFF OF UC BERKELEY EE123 CODE
+
+  #making r-transform
+  #rfloat = np.float64(r) / 255.0
+  rfloat = r
+  rt = np.zeros(image.shape[:2])
+  for i in np.r_[:rows:8]:
+    for j in np.r_[:cols:8]:
+      rt[i:(i+8), j:(j+8)] = dct2(rfloat[i:(i+8), j:(j+8)])
+
+  #making g-transform
+  #gfloat = np.float64(g)/255.0
+  gfloat = g
+  gt = np.zeros(image.shape[:2])
+  for i in np.r_[:rows:8]:
+    for j in np.r_[:cols:8]:
+      gt[i:(i+8), j:(j+8)] = dct2(gfloat[i:(i+8), j:(j+8)])
+  
+  #making b-transform
+  #bfloat = np.float64(b)/255.0
+  bfloat = b
+  bt = np.zeros(image.shape[:2])
+  for i in np.r_[:rows:8]:
+    for j in np.r_[:cols:8]:
+      bt[i:(i+8), j:(j+8)] = dct2(bfloat[i:(i+8), j:(j+8)])
+  #transformed_image = (np.dstack((rt,gt,bt)) * 255)).astype(np.uint8)
+  transformed_image = np.dstack((rt,gt,bt)).astype(np.uint8)
   return transformed_image
 
 def inverse_transform(transformed_image):
@@ -181,8 +208,54 @@ def inverse_transform(transformed_image):
   Returns:
   image - 3 x n x m matrix representation of image
   """
-  image = cv2.idct(transformed_image) # doesn't work
+  rows = transformed_image.shape[0]
+  cols = transformed_image.shape[1]
+  rt, gt, bt = cv2.split(transformed_image)
+
+  #CODE BASED OFF OF UC BERKELEY EE123 CODE
+
+  #making r-transform
+  #rtfloat = np.float64(rt) / 255.0
+  rtfloat = rt
+
+  r = np.zeros(transformed_image.shape[:2])
+  for i in np.r_[:rows:8]:
+    for j in np.r_[:cols:8]:
+      r[i:(i+8), j:(j+8)] = idct2(rtfloat[i:(i+8), j:(j+8)])
+
+  #making g-transform
+  #gtfloat = np.float64(gt) / 255.0
+  gtfloat = gt
+
+  g = np.zeros(transformed_image.shape[:2])
+  for i in np.r_[:rows:8]:
+    for j in np.r_[:cols:8]:
+      g[i:(i+8), j:(j+8)] = idct2(gtfloat[i:(i+8), j:(j+8)])
+  
+  #making b-transform
+  #btfloat = np.float64(bt)/255.0
+  btfloat = bt
+
+  b = np.zeros(transformed_image.shape[:2])
+  for i in np.r_[:rows:8]:
+    for j in np.r_[:cols:8]:
+      b[i:(i+8), j:(j+8)] = idct2(btfloat[i:(i+8), j:(j+8)])
+  
+  image = np.dstack((r,g,b)).astype(np.uint8)
+
+  #for i in range(rows):
+  #  for j in range(cols):
+  #    for v in range(3):
+   #     image[i][j][v] = (image[i][j][v] + 224) % 256
   return image
+
+def dct2(block):
+  #does dct2 on block
+  return scipy.fftpack.dct(scipy.fftpack.dct(block, axis=0, norm=None), axis=1, norm=None)
+
+def idct2(block):
+  #does exactly what you think it does
+  return scipy.fftpack.idct(scipy.fftpack.idct(block, axis=0, norm=None),  axis=1, norm=None)
 
 def generate_locations(public_key_filepath, length, max_index):
   with open(public_key_filepath, 'r') as f:
