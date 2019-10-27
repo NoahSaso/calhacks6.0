@@ -99,7 +99,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             # update paths before sent to script
             temp_filepath = temp_filepath_png
-            output_filepath = OUTPUT_FOLDER + filename + OUTPUT_FOLDER + '.png'
+            output_filepath = OUTPUT_FOLDER + filename + OUTPUT_SUFFIX + '.png'
 
         status = 200
 

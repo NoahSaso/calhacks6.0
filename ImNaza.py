@@ -8,7 +8,7 @@ import cv2
 import traceback
 
 ENCRYPTED_MESSAGE_LENGTH = 1024
-DUPLICATES = 50
+DUPLICATES = 100
 
 """
 MAIN
@@ -75,6 +75,7 @@ def decrypt(encrypted_message, private_key_filepath, passphrase):
   """
 
   if 'PGP' not in encrypted_message:
+    print(encrypted_message)
     raise Exception('Invalid PGP Message')
 
   key, _ = pgpy.PGPKey.from_file(private_key_filepath)
