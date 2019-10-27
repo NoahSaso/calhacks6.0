@@ -118,14 +118,13 @@ def encode(encrypted_msg, img, locs):
     return orig
 
   shape = image_shape(img)
-  rows = shape[0]
   cols = shape[1]
 
   # ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES
   for i in range(len(bin_encrypted_msg) * DUPLICATES):
     l = locs[i]
     bit = int(bin_encrypted_msg[i % len(bin_encrypted_msg)])
-    row = l // (3 * rows)
+    row = l // (3 * cols)
     col = (l // 3) % cols
     val = l % 3
 
@@ -140,14 +139,13 @@ def decode_transformed_image(transformed_image, locations):
   bitstring_duplicates = ['' for _ in range(DUPLICATES)]
 
   shape = image_shape(transformed_image)
-  rows = shape[0]
   cols = shape[1]
 
   for i in range(ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES):
     duplicate_idx = i // (ENCRYPTED_MESSAGE_LENGTH * 8)
     l = locations[i]
 
-    row = l // (3 * rows)
+    row = l // (3 * cols)
     col = (l // 3) % cols
 
     val = get_pixel(transformed_image, (row, col))[l % 3]
