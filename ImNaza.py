@@ -5,6 +5,7 @@ from PIL import Image
 import random
 import pgpy
 import cv2
+import traceback
 
 ENCRYPTED_MESSAGE_LENGTH = 1024
 DUPLICATES = 50
@@ -37,6 +38,7 @@ def receiver_job(encoded_image_filepath, public_key_filepath, private_key_filepa
     encrypted_message = decode_transformed_image(transformed_encoded_image, locations)
     message = decrypt(encrypted_message, private_key_filepath, passphrase)
   except Exception as e:
+    traceback.print_exc()
     if 'passphrase' not in str(e).lower():
       raise Exception("{0} (image probably doesn't contain any data)".format(str(e)))
     raise e
@@ -72,6 +74,9 @@ def decrypt(encrypted_message, private_key_filepath, passphrase):
   decrypted_message - string
   """
 
+  if 'PGP' not in encrypted_message:
+    raise Exception('Invalid PGP Message')
+
   key, _ = pgpy.PGPKey.from_file(private_key_filepath)
   msg = pgpy.PGPMessage.from_blob(encrypted_message)
 
@@ -83,7 +88,7 @@ def decrypt(encrypted_message, private_key_filepath, passphrase):
 
   msg = decrypted_message.message
 
-  return bytes(msg, 'utf-8').decode('unicode_escape') # escape string
+  return bytes(msg, 'utf-8').decode('unicode_escape') # unescape string
 
 """
 IMAGE PROCESSING (ENCODE/DECODE/TRANSFORM)
