@@ -7,13 +7,13 @@ import pgpy
 import cv2
 import traceback
 
-ENCRYPTED_MESSAGE_LENGTH = 1200
+# ENCRYPTED_MESSAGE_LENGTH = 1200
 # change to 1 if not compressing at all, super fast too
-DUPLICATES = 50
+# DUPLICATES = 50
 
 # SELF HOSTING SRC CODE WITH VALUES:
-# ENCRYPTED_MESSAGE_LENGTH = 3800
-# DUPLICATES = 35
+ENCRYPTED_MESSAGE_LENGTH = 3800
+DUPLICATES = 32 # 35 for logo img, 32 for Campanile
 
 # change to 1 if not compressing at all, super fast too
 BIT_IDX = 3 # 0 = MSB, 7 = LSB
