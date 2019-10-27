@@ -4,7 +4,6 @@ from utils import *
 from PIL import Image
 import random
 import pgpy
-import numpy as np
 
 """
 MAIN
@@ -93,15 +92,10 @@ def encode(eMess, img, locs):
   locs: locations for changing the indexes
   '''
   dim = image_shape(img)
-  zeroPadder = makeZeroPadder(8) # works for ascii but should be 21 for all possible unicode values
+  zeroPadder = makeZeroPadder(8)
   eMess = str(len(eMess)) + ":" + eMess
   #converts the message into 1's and zeros.
-  binEMess = ''.join([zeroPadder(bin(ord(c))[2:]) for c in eMess])  #"100100101001001"
-
-  polynomial_idxs = [i + 1 for i in range(len(eMess))]
-  polynomial_vals = [ord(c) for c in eMess]
-  coeffs = np.polyfit(list(range(len(polynomial_vals))), polynomial_vals, len(polynomial_vals) - 1)
-  print(coeffs)
+  binEMess = ''.join([zeroPadder(bin(ord(c))[2:]) for c in eMess]) #"100100101001001"
 
   def setVal(orig, b): # LSB helper function
     if orig % 2 == 0 and b == 1:
