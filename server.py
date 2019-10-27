@@ -95,11 +95,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         else:
             # decode text from image
 
-            try:
-                message = ImNaza.receiver_job(temp_filepath, 'test_pub.asc', 'test_priv.asc', passphrase)
-            except Exception as e:
-                status = 400
-                message = str(e)
+#            try:
+            message = ImNaza.receiver_job(temp_filepath, 'test_pub.asc', 'test_priv.asc', passphrase)
+#            except Exception as e:
+#                status = 400
+#                message = str(e)
 
             os.remove(temp_filepath)
 

@@ -10,6 +10,8 @@ MAIN
 """
 
 def sender_job(message, source_image_filepath, target_image_filepath, public_key_filepath):
+  print("SENDER")
+  print(source_image_filepath)
   encrypted_message = encrypt(message, public_key_filepath)
 
   image = read_image(source_image_filepath)
@@ -143,7 +145,8 @@ def decode_transformed_image(transformed_image, locations):
         try:
           limit = int(encrypted_message[:-1])
         except:
-          raise Exception('Bad length')
+#          raise Exception('Bad length')
+          continue
 
       # add/sub 1 because of the colon
       if len(encrypted_message) - len(str(limit)) - 1 == limit:
@@ -206,4 +209,5 @@ def write_image(image, filepath):
   Returns:
   None
   """
+  print("WRITING TO " + str(filepath))
   image.save(filepath)
