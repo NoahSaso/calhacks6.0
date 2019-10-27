@@ -74,6 +74,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 passphrase = data_str[idx + 2]
 
         temp_filepath = OUTPUT_FOLDER + filename + TEMP_SUFFIX + ext
+        print(temp_filepath)
         output_filepath = OUTPUT_FOLDER + filename + OUTPUT_SUFFIX + ext
 
         with open(temp_filepath, 'wb') as f:
@@ -83,19 +84,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         if encode:
             try:
-                ImNaza.sender_job(secret_text, temp_filepath, output_filepath, 'pub.asc')
+                ImNaza.sender_job(secret_text, temp_filepath, output_filepath, 'test_pub.asc')
                 message = "File saved to: {0}".format(output_filepath)
             except Exception as e:
                 status = 400
                 message = str(e)
 
-            os.remove(temp_filepath)
+            # os.remove(temp_filepath)
 
         else:
             # decode text from image
 
             try:
-                message = ImNaza.receiver_job(temp_filepath, 'pub.asc', 'priv.asc', passphrase)
+                message = ImNaza.receiver_job(temp_filepath, 'test_pub.asc', 'test_priv.asc', passphrase)
             except Exception as e:
                 status = 400
                 message = str(e)
