@@ -125,8 +125,6 @@ def encode(eMess, img, locs):
       l += 1
   return img
 
-
-
 def decode_transformed_image(transformed_image, locations):
   encrypted_message = ""
   current_bitstring = ""
@@ -174,28 +172,30 @@ def transform(image):
 
   #CODE BASED OFF OF UC BERKELEY EE123 CODE
 
+  shape = image_shape(image)
+
   #making r-transform
   rfloat = np.float64(r)
-  rt = np.zeros(image.shape[:2])
+  rt = np.zeros(shape)
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       rt[i:(i+8), j:(j+8)] = dct2(rfloat[i:(i+8), j:(j+8)])
 
   #making g-transform
   gfloat = np.float64(g)
-  gt = np.zeros(image.shape[:2])
+  gt = np.zeros(shape)
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       gt[i:(i+8), j:(j+8)] = dct2(gfloat[i:(i+8), j:(j+8)])
 
   #making b-transform
   bfloat = np.float64(b)
-  bt = np.zeros(image.shape[:2])
+  bt = np.zeros(shape)
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       bt[i:(i+8), j:(j+8)] = dct2(bfloat[i:(i+8), j:(j+8)])
   #transformed_image = (np.dstack((rt,gt,bt)) * 255)).astype(np.uint8)
-  transformed_image = np.dstack((bt,gt,rt))
+  transformed_image = np.dstack((bt,gt,rt)) * 255.0
   return transformed_image
 
 def inverse_transform(transformed_image):
@@ -205,16 +205,20 @@ def inverse_transform(transformed_image):
   Returns:
   image - 3 x n x m matrix representation of image
   """
-  rows = transformed_image.shape[0]
-  cols = transformed_image.shape[1]
-  bt, gt, rt = cv2.split(transformed_image)
+
+  shape = image_shape(transformed_image)
+  rows = shape[0]
+  cols = shape[1]
+  bt, gt, rt = cv2.split(transformed_image / 255.0)
 
   #CODE BASED OFF OF UC BERKELEY EE123 CODE
 
   #making r-transform
   rtfloat = np.float64(rt)
 
-  r = np.zeros(transformed_image.shape[:2])
+  shape = image_shape(transformed_image)
+
+  r = np.zeros(shape)
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       r[i:(i+8), j:(j+8)] = idct2(rtfloat[i:(i+8), j:(j+8)])
@@ -222,7 +226,7 @@ def inverse_transform(transformed_image):
   #making g-transform
   gtfloat = np.float64(gt)
 
-  g = np.zeros(transformed_image.shape[:2])
+  g = np.zeros(shape)
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       g[i:(i+8), j:(j+8)] = idct2(gtfloat[i:(i+8), j:(j+8)])
@@ -230,23 +234,13 @@ def inverse_transform(transformed_image):
   #making b-transform
   btfloat = np.float64(bt)
 
-  b = np.zeros(transformed_image.shape[:2])
+  b = np.zeros(shape)
   for i in np.r_[:rows:8]:
     for j in np.r_[:cols:8]:
       b[i:(i+8), j:(j+8)] = idct2(btfloat[i:(i+8), j:(j+8)])
 
-  image = np.uint8((np.dstack((b,g,r))) * 8)
-  for row in transformed_image:
-    print(row)
-  print(np.amax(transformed_image))
-  for row in image:
-    print(row)
-  print(np.amax(image))
+  image = np.uint8((np.dstack((b,g,r))))
 
-  #for i in range(rows):
-  #  for j in range(cols):
-  #    for v in range(3):
-   #     image[i][j][v] = (image[i][j][v] + 224) % 256
   return image
 
 def dct2(block):
@@ -256,6 +250,7 @@ def dct2(block):
 def idct2(block):
   #does exactly what you think it does
   return cv2.idct(block)
+
 def generate_locations(public_key_filepath, length, max_index):
   with open(public_key_filepath, 'r') as f:
     public_key = f.read()
@@ -267,29 +262,34 @@ def generate_locations(public_key_filepath, length, max_index):
 ### IMAGE DATA ABSTRACTIONS
 
 def image_shape(image):
-  return image.size
+  return image.shape[:-1] # ignore last dim
+  # return image.size
 
 def get_pixel(image, location):
-  return list(image.getpixel(location))
+  return image[location[0], location[1]]
+  # return list(image.getpixel(location))
 
 def set_pixel(image, location, rgb):
-  return image.putpixel(location, tuple(rgb))
+  image[location[0], location[1]] = rgb
+  # image.putpixel(location, tuple(rgb))
 
 def read_image(filepath):
   """Retrieves image.
   Params:
   filepath - string filepath
   Returns:
-  image - 3 x n x m matrix representation of image
+  image - PIL Image object
   """
-  return Image.open(filepath, 'r')
+  return cv2.imread(filepath)
+  # return Image.open(filepath, 'r')
 
 def write_image(image, filepath):
   """Writes image.
   Params:
-  image - image - 3 x n x m matrix representation of image
+  image - PIL Image object
   filepath - string of target filepath
   Returns:
   None
   """
-  image.save(filepath, 'PNG')
+  cv2.imwrite(filepath, image)
+  # image.save(filepath)
