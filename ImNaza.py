@@ -101,6 +101,7 @@ def decrypt(encrypted_message, private_key_filepath, passphrase):
     raise Exception('Invalid PGP Message')
 
   key, _ = pgpy.PGPKey.from_file(private_key_filepath)
+  print(encrypted_message.encode('utf-8').decode('unicode_escape'))
   msg = pgpy.PGPMessage.from_blob(encrypted_message.encode('utf-8').decode('unicode_escape')) # unescape string
 
   if not key.is_unlocked:
@@ -126,9 +127,6 @@ def encode(encrypted_msg, img, random_location_generator):
   # converts the message into 1's and zeros.
   bin_encrypted_msg = ''.join([zeroPadderEncrypted(bin(ord(c))[2:]) for c in encrypted_msg]) #"100100101001001"
 
-  print('len(encrypted_msg):', len(encrypted_msg))
-  print('len(bin_encrypted_msg):', len(bin_encrypted_msg))
-
   shape = image_shape(img)
   cols = shape[1]
 
@@ -145,6 +143,14 @@ def encode(encrypted_msg, img, random_location_generator):
     set_pixel(img, pixel_loc, pixel)
   return img
 
+def find_all(s, sub):
+  start = 0
+  while True:
+    start = s.find(sub, start)
+    if start == -1: return
+    yield start
+    start += len(sub) # use start += 1 to find overlapping matches
+
 def decode_transformed_image(transformed_image, random_location_generator):
   encoded_bits = ''
 
@@ -159,42 +165,54 @@ def decode_transformed_image(transformed_image, random_location_generator):
     encoded_bits += get_modified_bit(val)
 
   bitstrings = [''.join(bitstring) for bitstring in zip(*[iter(encoded_bits)] * ENCRYPTED_MESSAGE_CHAR_BITS)]
-  ascii_from_encoded_bits = [chr(int(bitstring, 2)) for bitstring in bitstrings]
+  ascii_from_encoded_bits = ''.join([chr(int(bitstring, 2)) for bitstring in bitstrings])
 
-  max_run_len_found = None
-  diffs_btw_max_run_size = []
+  ### BASED ON KNOWING PGP EXISTS
+  all_idxs = list(find_all(ascii_from_encoded_bits, 'BEGIN PGP'))
+  diffs_in_idx = [all_idxs[i + 1] - all_idxs[i] for i in range(len(all_idxs) - 1)]
+  print(diffs_in_idx)
+  encrypted_message_length = min(diffs_in_idx)
+  print(encrypted_message_length)
 
-  MIN_LENGTH = 500
+  ### BASED ON FINDING SIMILAR SEQUENCES:
 
-  min_run = 10
-  max_run = 11
-  len_data = len(ascii_from_encoded_bits)
-  for run_len in range(min_run, max_run):
-    i = 0
-    while i < len_data - run_len * 2:
-      run1 = ascii_from_encoded_bits[i:i + run_len]
-      j = i + run_len + MIN_LENGTH
-      while j < len_data - run_len:
-        run2 = ascii_from_encoded_bits[j:j + run_len]
-        if run1 == run2:
-          print(run_len, run1)
-          if not max_run_len_found or run_len > max_run_len_found:
-            max_run_len_found = run_len
-            diffs_btw_max_run_size = []
-          else:
-            diffs_btw_max_run_size.append(j - i)
-            print(j - i)
-          j += run_len
-        else:
-          j += 1
-      i += 1
+  # max_run_len_found = None
+  # diffs_btw_max_run_size = []
 
-  print(max_run_len_found)
-  print(diffs_btw_max_run_size)
+  # MIN_LENGTH = 500
 
-  encrypted_message_length = max(diffs_btw_max_run_size)
+  # min_run = 10
+  # max_run = 11
+  # len_data = len(ascii_from_encoded_bits)
+  # for run_len in range(min_run, max_run):
+  #   i = 0
+  #   while i < len_data - run_len * 2:
+  #     run1 = ascii_from_encoded_bits[i:i + run_len]
+  #     j = i + run_len + MIN_LENGTH
+  #     while j < len_data - run_len:
+  #       run2 = ascii_from_encoded_bits[j: j + run_len]
+  #       print(run1, run2)
+  #       if run1 == run2:
+  #         print(run_len, run1)
+  #         if not max_run_len_found or run_len > max_run_len_found:
+  #           max_run_len_found = run_len
+  #           diffs_btw_max_run_size = []
+  #         else:
+  #           diffs_btw_max_run_size.append(j - i)
+  #           print(j - i)
+  #         j += run_len
+  #       else:
+  #         j += 1
+  #     i += 1
+
+  # print(max_run_len_found)
+  # print(diffs_btw_max_run_size)
+
+  # encrypted_message_length = max(diffs_btw_max_run_size)
 
   # exit(1)
+
+  ### BASED ON A PREFIX:
 
   # zip(*[iter(l)]*n) = [(first n elements of l), (second n elements of l), ...]
   # if list length not divisible by n, will ignore excess values at end:
