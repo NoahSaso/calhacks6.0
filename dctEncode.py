@@ -1,7 +1,21 @@
 import cv2
+import numpy as np
 from utils import makeZeroPadder
 
 zero_padder = makeZeroPadder(8)
+
+def make_block_generator(array, block_width, block_height):
+    '''
+    Makes a generator which yields blocks of size block_width x
+    block_height.
+
+    At the moment, this should ignore elements on the edge of
+    arrays which are not evenly divided by block_widht/height.
+    '''
+    width, height = array.shape[:2]
+    for x in range(0, width - block_width, block_width):
+        for y in range(0, height - block_height, block_height):
+            yield array[x:x + block_width, y:y+block_height]
 
 def dct_encode(image, text, channel = 1):
     '''                                                                                                                                                                                                                                      
