@@ -7,12 +7,14 @@ import pgpy
 import cv2
 import traceback
 import time
+# import regex
+import fuzzysearch
 
 # change to 1 if not compressing at all, super fast too
 BIT_IDX = 3  # 0 = MSB, 7 = LSB
 
 # use 7 bits for encrypted message chars because ASCII max value is 127 and encrypted_msg is ASCII-armored PGP message
-ENCRYPTED_MESSAGE_CHAR_BITS = 7
+ENCRYPTED_MESSAGE_CHAR_BITS = 9
 zeroPadderEncrypted = makeZeroPadder(ENCRYPTED_MESSAGE_CHAR_BITS)
 
 zeroPadderRGB = makeZeroPadder(8)  # 8 bits for rgb 255
@@ -101,7 +103,7 @@ def decrypt(encrypted_message, private_key_filepath, passphrase):
     raise Exception('Invalid PGP Message')
 
   key, _ = pgpy.PGPKey.from_file(private_key_filepath)
-  print(encrypted_message.encode('utf-8').decode('unicode_escape'))
+  # print(encrypted_message.encode('utf-8').decode('unicode_escape'))
   msg = pgpy.PGPMessage.from_blob(encrypted_message.encode('utf-8').decode('unicode_escape')) # unescape string
 
   if not key.is_unlocked:
@@ -168,11 +170,28 @@ def decode_transformed_image(transformed_image, random_location_generator):
   ascii_from_encoded_bits = ''.join([chr(int(bitstring, 2)) for bitstring in bitstrings])
 
   ### BASED ON KNOWING PGP EXISTS
-  all_idxs = list(find_all(ascii_from_encoded_bits, 'BEGIN PGP'))
-  diffs_in_idx = [all_idxs[i + 1] - all_idxs[i] for i in range(len(all_idxs) - 1)]
-  print(diffs_in_idx)
-  encrypted_message_length = min(diffs_in_idx)
+  begin_binary = ''.join(zeroPadderEncrypted(bin(ord(c))[2:]) for c in '-----BEGIN PGP MESSAGE-----')
+  matches = fuzzysearch.find_near_matches(begin_binary, encoded_bits, max_substitutions=len(begin_binary) // 5, max_deletions=0, max_insertions=0)
+  diffs = [matches[i + 1].start - matches[i].start for i in range(len(matches) - 1)]
+  print(diffs)
+  for i in range(len(matches) - 1):
+    sub = encoded_bits[matches[i].start : matches[i + 1].start]
+    ascii_subs = [''.join(bitstring) for bitstring in zip(*[iter(sub)] * ENCRYPTED_MESSAGE_CHAR_BITS)]
+    # print(''.join([chr(int(a, 2)) for a in ascii_subs]))
+  # exit(1)
+
+  encrypted_message_length = max(diffs, key=diffs.count)
   print(encrypted_message_length)
+
+  # print('(%s){e<=%d}' % (begin_binary, len(begin_binary) // 4))
+  # reg = regex.compile('(%s){s<=%d}' % (begin_binary, len(begin_binary) // 4))
+  # print(reg.findall(encoded_bits))
+  # exit(1)
+  # all_idxs = list(find_all(ascii_from_encoded_bits, 'BEGIN'))
+  # print(all_idxs)
+  # diffs_in_idx = [all_idxs[i + 1] - all_idxs[i] for i in range(len(all_idxs) - 1)]
+  # print(diffs_in_idx)
+  # encrypted_message_length = min(diffs_in_idx)
 
   ### BASED ON FINDING SIMILAR SEQUENCES:
 
@@ -243,6 +262,8 @@ def decode_transformed_image(transformed_image, random_location_generator):
       bit = max(bit_dupes, key=bit_dupes.count)
       bitstr += bit
     encrypted_message += chr(int(bitstr, 2))
+
+  print(encrypted_message)
 
   return encrypted_message
 
