@@ -6,25 +6,23 @@ import random
 import pgpy
 import cv2
 import traceback
-
-# ENCRYPTED_MESSAGE_LENGTH = 1200
-# change to 1 if not compressing at all, super fast too
-# DUPLICATES = 50
-
-# SELF HOSTING SRC CODE WITH VALUES:
-ENCRYPTED_MESSAGE_LENGTH = 3800
-DUPLICATES = 32 # 35 for logo img, 32 for Campanile
+import time
 
 # change to 1 if not compressing at all, super fast too
-BIT_IDX = 3 # 0 = MSB, 7 = LSB
+BIT_IDX = 3  # 0 = MSB, 7 = LSB
 
-zeroPadder = makeZeroPadder(8)
+# use 7 bits for encrypted message chars because ASCII max value is 127 and encrypted_msg is ASCII-armored PGP message
+ENCRYPTED_MESSAGE_CHAR_BITS = 7
+zeroPadderEncrypted = makeZeroPadder(ENCRYPTED_MESSAGE_CHAR_BITS)
+
+zeroPadderRGB = makeZeroPadder(8)  # 8 bits for rgb 255
+
 def get_val(orig, b):
-  bits = zeroPadder(bin(orig)[2:])
-  return int(bits[0:BIT_IDX] + str(b) + bits[BIT_IDX + 1 :], 2)
+  bits = zeroPadderRGB(bin(orig)[2:])
+  return int(bits[0:BIT_IDX] + str(b) + bits[BIT_IDX + 1:], 2)
 
 def get_modified_bit(orig):
-  bits = zeroPadder(bin(orig)[2:])
+  bits = zeroPadderRGB(bin(orig)[2:])
   return bits[BIT_IDX]
 
 """
@@ -36,12 +34,17 @@ def sender_job(message, source_image_filepath, target_image_filepath, public_key
 
   image = read_image(source_image_filepath)
   shape = image_shape(image)
-  message_length = ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES
-  max_index = shape[0] * shape[1] * 3
+  number_of_values = shape[0] * shape[1] * 3
 
   transformed_image = transform(image)
-  locations = generate_locations(public_key_filepath, message_length, max_index)
-  transformed_encoded_image = encode(encrypted_message, transformed_image, locations)
+  random_location_generator = create_random_location_generator(public_key_filepath, number_of_values)
+
+  try:
+    transformed_encoded_image = encode(encrypted_message, transformed_image, random_location_generator)
+  except Exception as e:
+    traceback.print_exc()
+    raise e
+
   encoded_image = inverse_transform(transformed_encoded_image)
 
   write_image(encoded_image, target_image_filepath)
@@ -49,14 +52,13 @@ def sender_job(message, source_image_filepath, target_image_filepath, public_key
 def receiver_job(encoded_image_filepath, public_key_filepath, private_key_filepath, passphrase):
   encoded_image = read_image(encoded_image_filepath)
   shape = image_shape(encoded_image)
-  message_length = ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES
-  max_index = shape[0] * shape[1] * 3
+  number_of_values = shape[0] * shape[1] * 3
 
   transformed_encoded_image = transform(encoded_image)
-  locations = generate_locations(public_key_filepath, message_length, max_index)
+  random_location_generator = create_random_location_generator(public_key_filepath, number_of_values)
 
   try:
-    encrypted_message = decode_transformed_image(transformed_encoded_image, locations)
+    encrypted_message = decode_transformed_image(transformed_encoded_image, random_location_generator)
     message = decrypt(encrypted_message, private_key_filepath, passphrase)
   except Exception as e:
     traceback.print_exc()
@@ -84,7 +86,7 @@ def encrypt(message, public_key_filepath):
 
   encrypted_message = key.encrypt(msg)
 
-  return str(encrypted_message)
+  return str(encrypted_message).encode('unicode_escape').decode('utf-8')
 
 def decrypt(encrypted_message, private_key_filepath, passphrase):
   """Decrypts encrypted message.
@@ -99,7 +101,7 @@ def decrypt(encrypted_message, private_key_filepath, passphrase):
     raise Exception('Invalid PGP Message')
 
   key, _ = pgpy.PGPKey.from_file(private_key_filepath)
-  msg = pgpy.PGPMessage.from_blob(encrypted_message)
+  msg = pgpy.PGPMessage.from_blob(encrypted_message.encode('utf-8').decode('unicode_escape')) # unescape string
 
   if not key.is_unlocked:
     with key.unlock(passphrase):
@@ -115,27 +117,19 @@ def decrypt(encrypted_message, private_key_filepath, passphrase):
 IMAGE PROCESSING (ENCODE/DECODE/TRANSFORM)
 """
 
-def encode(encrypted_msg, img, locs):
+def encode(encrypted_msg, img, random_location_generator):
   '''
   encrypted_msg: encrypted message
   img: cv img
-  locs: locations for changing the indexes
+  random_location_generator: generator function that spits out a unique location each time
   '''
-  # encrypted_msg = str(len(encrypted_msg)) + ":" + encrypted_msg
-  #converts the message into 1's and zeros.
-  if len(encrypted_msg) > ENCRYPTED_MESSAGE_LENGTH:
-    raise Exception('Encrypted message too long')
-  # length = ENCRYPTED_MESSAGE_LENGTH
-  padded_encrypted_msg = encrypted_msg + ' ' * (ENCRYPTED_MESSAGE_LENGTH - len(encrypted_msg))
-  # length = ENCRYPTED_MESSAGE_LENGTH * 8
-  bin_encrypted_msg = ''.join([zeroPadder(bin(ord(c))[2:]) for c in padded_encrypted_msg]) #"100100101001001"
+  # converts the message into 1's and zeros.
+  bin_encrypted_msg = ''.join([zeroPadderEncrypted(bin(ord(c))[2:]) for c in encrypted_msg]) #"100100101001001"
 
   shape = image_shape(img)
   cols = shape[1]
 
-  # ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES
-  for i in range(len(bin_encrypted_msg) * DUPLICATES):
-    l = locs[i]
+  for i, l in enumerate(random_location_generator):
     bit = int(bin_encrypted_msg[i % len(bin_encrypted_msg)])
     row = l // (3 * cols)
     col = (l // 3) % cols
@@ -148,34 +142,79 @@ def encode(encrypted_msg, img, locs):
     set_pixel(img, pixel_loc, pixel)
   return img
 
-def decode_transformed_image(transformed_image, locations):
-  bitstring_duplicates = ['' for _ in range(DUPLICATES)]
+def decode_transformed_image(transformed_image, random_location_generator):
+  encoded_bits = ''
 
   shape = image_shape(transformed_image)
   cols = shape[1]
 
-  for i in range(ENCRYPTED_MESSAGE_LENGTH * 8 * DUPLICATES):
-    duplicate_idx = i // (ENCRYPTED_MESSAGE_LENGTH * 8)
-    l = locations[i]
-
+  for l in random_location_generator:
     row = l // (3 * cols)
     col = (l // 3) % cols
 
     val = get_pixel(transformed_image, (row, col))[l % 3]
-    bitstring_duplicates[duplicate_idx] += get_modified_bit(val)
+    encoded_bits += get_modified_bit(val)
 
-  encrypted_message = ""
-  curr_bitstring = ""
-  for i in range(ENCRYPTED_MESSAGE_LENGTH * 8):
-    bit_duplicates = [bitstring[i] for bitstring in bitstring_duplicates]
-    bit = max(bit_duplicates, key=bit_duplicates.count)
-    curr_bitstring += bit
-    if len(curr_bitstring) == 8:
-      # We've read a character.
-      char_code = int(curr_bitstring, 2)
-      c = chr(char_code)
-      encrypted_message += c
-      curr_bitstring = ""
+  max_run_len_found = None
+  max_run_found = None
+
+  tstart = time.time()
+
+  min_run = ENCRYPTED_MESSAGE_CHAR_BITS * 2
+  max_run = ENCRYPTED_MESSAGE_CHAR_BITS * 10
+  len_data = len(encoded_bits)
+  for run_len in range(min_run, max_run):
+    i = 0
+    while i < len_data - run_len * 2:
+      run1 = encoded_bits[i:i + run_len]
+      run2 = encoded_bits[i + run_len:i + run_len * 2]
+      if run1 == run2:
+        print(i, run_len, run1)
+        if not max_run_len_found or run_len > max_run_len_found:
+          max_run_found = run1
+          max_run_len_found = run_len
+        i += run_len
+      else:
+        i += 1
+
+  print(max_run_len_found)
+  print(max_run_found)
+
+  tend = time.time()
+
+  print('Finished in {0} seconds'.format(tend - tstart))
+
+  exit(1)
+
+  # zip(*[iter(l)]*n) = [(first n elements of l), (second n elements of l), ...]
+  # if list length not divisible by n, will ignore excess values at end:
+  ## if l = [1, 2, 3, 4, 5] and n = 2, output = [(1, 2), (3, 4)]
+  bitstrings = [''.join(bitstring) for bitstring in zip(*[iter(encoded_bits)] * ENCRYPTED_MESSAGE_CHAR_BITS)]
+  ascii_from_encoded_bits = [chr(int(bitstring, 2)) for bitstring in bitstrings]
+
+  idxs_of_prefix = [i for i, x in enumerate(ascii_from_encoded_bits) if x == PREFIX]
+  diffs_in_idx_of_prefix = [idxs_of_prefix[i + 1] - idxs_of_prefix[i] for i in range(len(idxs_of_prefix) - 1)]
+
+  encrypted_message_length = max(diffs_in_idx_of_prefix)
+
+  # floor divide because end contains start of another repetition that makes this not divide evenly
+  duplicates = len(bitstrings) // encrypted_message_length
+  extra_data_length = len(bitstrings) % encrypted_message_length
+
+  encrypted_message = ''
+  for i in range(encrypted_message_length):
+    bitstring_dupes = [bitstrings[j * encrypted_message_length + i] for j in range(duplicates)]
+
+    # use extra data if we've encoded up to this part of the message
+    if i < extra_data_length:
+      bitstring_dupes += [bitstrings[duplicates * encrypted_message_length + i]]
+
+    bitstr = ''
+    for j in range(ENCRYPTED_MESSAGE_CHAR_BITS):
+      bit_dupes = [dup[j] for dup in bitstring_dupes]
+      bit = max(bit_dupes, key=bit_dupes.count)
+      bitstr += bit
+    encrypted_message += chr(int(bitstr, 2))
 
   return encrypted_message
 
@@ -199,13 +238,30 @@ def inverse_transform(transformed_image):
   image = transformed_image
   return image
 
-def generate_locations(public_key_filepath, length, max_index):
+def create_random_location_generator(public_key_filepath, number_of_values):
   with open(public_key_filepath, 'rb') as f:
     public_key = f.read()
-  pubHash = hashing_function_that_goddamn_works_correctly(public_key)
-  random.seed(pubHash)
-  result = random.sample(range(max_index), length)
-  return result
+  public_key_hash = hashing_function_that_goddamn_works_correctly(public_key)
+  random.seed(public_key_hash)
+  return sample_gen(number_of_values)
+
+# https://stackoverflow.com/a/18994897
+def sample_gen(n):#, forbid):
+  state = dict()
+  # track = dict()
+  # for i, o in enumerate(forbid):
+  #   x = track.get(o, o)
+  #   t = state.get(n - i - 1, n - i - 1)
+  #   state[x] = t
+  #   track[t] = x
+  #   state.pop(n - i - 1, None)
+  #   track.pop(o, None)
+  # del track
+  for remaining in range(n, 0, -1):  #- len(forbid), 0, -1):
+    i = random.randrange(remaining)
+    yield state.get(i, i)
+    state[i] = state.get(remaining - 1, remaining - 1)
+    state.pop(remaining - 1, None)
 
 ### IMAGE DATA ABSTRACTIONS
 
