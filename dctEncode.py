@@ -12,6 +12,7 @@ def dct_encode(image, text, channel = 1):
     2. Perform the DCT on each block.
     3. For each block, compare the coefficents in positions (6, 7) and
        (5, 1).
+        - If (6, 7) = (5, 1), carry on.
         - If (6, 7) > (5, 1) the encoded bit is a 1.
         - Otherwise, the encoded bit is a zero.
     4. Swap the coefficents to properly encode the value needed.
@@ -21,8 +22,18 @@ def dct_encode(image, text, channel = 1):
     @param the channel to encode the text into, R, G, or B.
     @return a new image with the ecoded text.
     
-    TODO(zeke): This function needs repition and a way to indicate the
-    length of the encoded string.
+    TODO(zeke/noah): This function needs repition and / or a way to
+    indicate the length of the encoded string. I think repitition is a
+    nice way to go. I beleive that @noah has a couple ideas on how to
+    best add that. At the moment it just encodes the message in the
+    first blocks and decodes everyhing.
+
+    TODO: We need to think more about the case where a == 0 and a is
+    close to b. These cases are currently pretty vunreable to
+    compression issues. One idea is to enforce that there be a
+    distance of at least I between a and b. After things have all been
+    calculated, we could add and subtract as appropriate to maintin
+    that distance.
     '''                                                                                                                                                                                                    
     if ( channel > 4 ):
         print("WARNING: Channel is {}. This is probably a mistake.".format(channel))
@@ -66,8 +77,6 @@ def dct_encode(image, text, channel = 1):
             
     # Stack channels back together.
     channels[channel] = the_channel
-    
-    # Normalize values.
     return np.dstack(channels)
 
 def dct_decode(image, channel = 1):
@@ -78,6 +87,7 @@ def dct_decode(image, channel = 1):
     2. Perform the DCT on each block.
     3. For each block, compare the coefficents in positions (6, 7) and
        (5, 1).
+        - If (6, 7) = (5, 1), carry on.
         - If (6, 7) > (5, 1) the encoded bit is a 1.
         - Otherwise, the encoded bit is a zero.
     4. Swap the coefficents to properly encode the value needed.
@@ -86,8 +96,7 @@ def dct_decode(image, channel = 1):
         print("WARNING: Channel is {}. This is probably a mistake.".format(channel))
         print("         Color images typically only have three channels: R, G and B.")
 
-    # The width and height of the blocks that we will perform the DCT                                                                                                                                                                         
-    # on. The choice of 8 here is more or less standard across JPEG                                                                                                                                                                           
+    # The width and height of the blocks that we will perform the DCT                                                                                                                                                                            # on. The choice of 8 here is more or less standard across JPEG                                                                                                                                                                           
     # compression as far as I know.       
     block_width = 8
     block_height = 8
