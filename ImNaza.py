@@ -126,6 +126,9 @@ def encode(encrypted_msg, img, random_location_generator):
   # converts the message into 1's and zeros.
   bin_encrypted_msg = ''.join([zeroPadderEncrypted(bin(ord(c))[2:]) for c in encrypted_msg]) #"100100101001001"
 
+  print('len(encrypted_msg):', len(encrypted_msg))
+  print('len(bin_encrypted_msg):', len(bin_encrypted_msg))
+
   shape = image_shape(img)
   cols = shape[1]
 
@@ -155,47 +158,54 @@ def decode_transformed_image(transformed_image, random_location_generator):
     val = get_pixel(transformed_image, (row, col))[l % 3]
     encoded_bits += get_modified_bit(val)
 
+  bitstrings = [''.join(bitstring) for bitstring in zip(*[iter(encoded_bits)] * ENCRYPTED_MESSAGE_CHAR_BITS)]
+  ascii_from_encoded_bits = [chr(int(bitstring, 2)) for bitstring in bitstrings]
+
   max_run_len_found = None
-  max_run_found = None
+  diffs_btw_max_run_size = []
 
-  tstart = time.time()
+  MIN_LENGTH = 500
 
-  min_run = ENCRYPTED_MESSAGE_CHAR_BITS * 2
-  max_run = ENCRYPTED_MESSAGE_CHAR_BITS * 10
-  len_data = len(encoded_bits)
+  min_run = 10
+  max_run = 11
+  len_data = len(ascii_from_encoded_bits)
   for run_len in range(min_run, max_run):
     i = 0
     while i < len_data - run_len * 2:
-      run1 = encoded_bits[i:i + run_len]
-      run2 = encoded_bits[i + run_len:i + run_len * 2]
-      if run1 == run2:
-        print(i, run_len, run1)
-        if not max_run_len_found or run_len > max_run_len_found:
-          max_run_found = run1
-          max_run_len_found = run_len
-        i += run_len
-      else:
-        i += 1
+      run1 = ascii_from_encoded_bits[i:i + run_len]
+      j = i + run_len + MIN_LENGTH
+      while j < len_data - run_len:
+        run2 = ascii_from_encoded_bits[j:j + run_len]
+        if run1 == run2:
+          print(run_len, run1)
+          if not max_run_len_found or run_len > max_run_len_found:
+            max_run_len_found = run_len
+            diffs_btw_max_run_size = []
+          else:
+            diffs_btw_max_run_size.append(j - i)
+            print(j - i)
+          j += run_len
+        else:
+          j += 1
+      i += 1
 
   print(max_run_len_found)
-  print(max_run_found)
+  print(diffs_btw_max_run_size)
 
-  tend = time.time()
+  encrypted_message_length = max(diffs_btw_max_run_size)
 
-  print('Finished in {0} seconds'.format(tend - tstart))
-
-  exit(1)
+  # exit(1)
 
   # zip(*[iter(l)]*n) = [(first n elements of l), (second n elements of l), ...]
   # if list length not divisible by n, will ignore excess values at end:
   ## if l = [1, 2, 3, 4, 5] and n = 2, output = [(1, 2), (3, 4)]
-  bitstrings = [''.join(bitstring) for bitstring in zip(*[iter(encoded_bits)] * ENCRYPTED_MESSAGE_CHAR_BITS)]
-  ascii_from_encoded_bits = [chr(int(bitstring, 2)) for bitstring in bitstrings]
+  # bitstrings = [''.join(bitstring) for bitstring in zip(*[iter(encoded_bits)] * ENCRYPTED_MESSAGE_CHAR_BITS)]
+  # ascii_from_encoded_bits = [chr(int(bitstring, 2)) for bitstring in bitstrings]
 
-  idxs_of_prefix = [i for i, x in enumerate(ascii_from_encoded_bits) if x == PREFIX]
-  diffs_in_idx_of_prefix = [idxs_of_prefix[i + 1] - idxs_of_prefix[i] for i in range(len(idxs_of_prefix) - 1)]
+  # idxs_of_prefix = [i for i, x in enumerate(ascii_from_encoded_bits) if x == PREFIX]
+  # diffs_in_idx_of_prefix = [idxs_of_prefix[i + 1] - idxs_of_prefix[i] for i in range(len(idxs_of_prefix) - 1)]
 
-  encrypted_message_length = max(diffs_in_idx_of_prefix)
+  # encrypted_message_length = max(diffs_in_idx_of_prefix)
 
   # floor divide because end contains start of another repetition that makes this not divide evenly
   duplicates = len(bitstrings) // encrypted_message_length
