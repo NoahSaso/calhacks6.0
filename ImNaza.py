@@ -14,8 +14,11 @@ import fuzzysearch
 BIT_IDX = 3  # 0 = MSB, 7 = LSB
 
 # use 7 bits for encrypted message chars because ASCII max value is 127 and encrypted_msg is ASCII-armored PGP message
-ENCRYPTED_MESSAGE_CHAR_BITS = 9
+ENCRYPTED_MESSAGE_CHAR_BITS = 7
 zeroPadderEncrypted = makeZeroPadder(ENCRYPTED_MESSAGE_CHAR_BITS)
+
+LENGTH_PADDING = 20
+lengthPadder = makeZeroPadder(LENGTH_PADDING) # 1048575 max length of message right now (in future make function of size of image potentially)
 
 zeroPadderRGB = makeZeroPadder(8)  # 8 bits for rgb 255
 
@@ -127,7 +130,7 @@ def encode(encrypted_msg, img, random_location_generator):
   random_location_generator: generator function that spits out a unique location each time
   '''
   # converts the message into 1's and zeros.
-  bin_encrypted_msg = ''.join([zeroPadderEncrypted(bin(ord(c))[2:]) for c in encrypted_msg]) #"100100101001001"
+  bin_encrypted_msg = lengthPadder(bin(len(encrypted_msg))[2:]) + ''.join([zeroPadderEncrypted(bin(ord(c))[2:]) for c in encrypted_msg])  #"100100101001001"
 
   shape = image_shape(img)
   cols = shape[1]
@@ -166,22 +169,25 @@ def decode_transformed_image(transformed_image, random_location_generator):
     val = get_pixel(transformed_image, (row, col))[l % 3]
     encoded_bits += get_modified_bit(val)
 
-  bitstrings = [''.join(bitstring) for bitstring in zip(*[iter(encoded_bits)] * ENCRYPTED_MESSAGE_CHAR_BITS)]
-  ascii_from_encoded_bits = ''.join([chr(int(bitstring, 2)) for bitstring in bitstrings])
+  corrupted_length_bits = encoded_bits[:LENGTH_PADDING]
+  
+
+  # bitstrings = [''.join(bitstring) for bitstring in zip(*[iter(encoded_bits)] * ENCRYPTED_MESSAGE_CHAR_BITS)]
+  # ascii_from_encoded_bits = ''.join([chr(int(bitstring, 2)) for bitstring in bitstrings])
 
   ### BASED ON KNOWING PGP EXISTS
-  begin_binary = ''.join(zeroPadderEncrypted(bin(ord(c))[2:]) for c in '-----BEGIN PGP MESSAGE-----')
-  matches = fuzzysearch.find_near_matches(begin_binary, encoded_bits, max_substitutions=len(begin_binary) // 5, max_deletions=0, max_insertions=0)
-  diffs = [matches[i + 1].start - matches[i].start for i in range(len(matches) - 1)]
-  print(diffs)
-  for i in range(len(matches) - 1):
-    sub = encoded_bits[matches[i].start : matches[i + 1].start]
-    ascii_subs = [''.join(bitstring) for bitstring in zip(*[iter(sub)] * ENCRYPTED_MESSAGE_CHAR_BITS)]
+  # begin_binary = ''.join(zeroPadderEncrypted(bin(ord(c))[2:]) for c in '-----BEGIN PGP MESSAGE-----')
+  # matches = fuzzysearch.find_near_matches(begin_binary, encoded_bits, max_substitutions=len(begin_binary) // 5, max_deletions=0, max_insertions=0)
+  # diffs = [matches[i + 1].start - matches[i].start for i in range(len(matches) - 1)]
+  # print(diffs)
+  # for i in range(len(matches) - 1):
+  #   sub = encoded_bits[matches[i].start : matches[i + 1].start]
+  #   ascii_subs = [''.join(bitstring) for bitstring in zip(*[iter(sub)] * ENCRYPTED_MESSAGE_CHAR_BITS)]
     # print(''.join([chr(int(a, 2)) for a in ascii_subs]))
   # exit(1)
 
-  encrypted_message_length = max(diffs, key=diffs.count)
-  print(encrypted_message_length)
+  # encrypted_message_length = max(diffs, key=diffs.count)
+  # print(encrypted_message_length)
 
   # print('(%s){e<=%d}' % (begin_binary, len(begin_binary) // 4))
   # reg = regex.compile('(%s){s<=%d}' % (begin_binary, len(begin_binary) // 4))
