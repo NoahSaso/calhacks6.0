@@ -24,6 +24,10 @@ ol {
   padding: 0;
 }
 
+img#logo {
+  width: 200px;
+}
+
 div.horizontal {
   display: flex;
   flex-direction: row;
